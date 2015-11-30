@@ -67,7 +67,9 @@ void setup() {
 
   //Attach a GPIO Interrrupt
    attachInterrupt(2, pinChanged, RISING);
-   
+
+
+  //sETUP ntp sync
   setSyncProvider(rrtime.getTime);
   setSyncInterval(60*60*12); 
 
@@ -129,5 +131,62 @@ void loop() {
   Serial.println(cnt);
   cnt = 0;
   */
+}
+
+
+
+
+void handleAccessPoint(String wifi) {
+  char temp[6000];
+  String html = "<html>"
+                "<head>"
+                "<meta charset='utf-8' http-equiv='refresh' content='5'/>"
+                "<title>ESP8266 Demo</title>"
+                "<style>"
+                "body { background-color: #cccccc; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }"
+                "input { font-size: 30px }"
+                "table, th, td {"
+                "border: 1px solid black;"
+                "border-collapse: collapse;"
+                "font-size: 30px"
+                "}"
+                "th, td {"
+                "padding: 5px;"
+                "text-align: left;"
+                "}"
+                "</style>"
+                "</head>"
+                "<body>"
+                "<table style='width:100%'>"
+                "<caption><h1 style='font-size:40px'><u>Einstellungen WiFi</u></h1></caption>"
+                "<tr>"
+                "<td><p>SSID:</p></td>"
+                "<td>" + wifi + "</td>"
+                "</tr>"
+                "<tr>"
+                "<td><p>Passwort:</p></td>"
+                "<td><input type='password' size='40' id='password' name='password'></td>"
+                "</tr>"
+                "<tr>"
+                "<td><p>IP:</p></td>"
+                "<td><input type='text' size='40' id='ip' name='ip'></td>"
+                "</tr>"
+                "<tr>"
+                "<td><p>Gateway:</p></td>"
+                "<td><input type='text' size='40' id='gateway' name='gateway'></td>"
+                "</tr>"
+                "<tr>"
+                "<td><p>Subnetz:</p></td>"
+                "<td><input type='text' size='40' id='subnet' name='subnet'></td>"
+                "</tr>"
+                "<tr>"
+                "<td></td><td text-align:='center'><form action='/search_WIFIs' method='get'><button type='submit' id='update' onClick=location.href='/search_WIFIs'>Suche WIFIs</button></form><form action='/save_reboot' method='get'><button type='button' id='save' onClick=location.href='/save_reboot'>Speichern und Reboot</button></form><td>"
+                "</tr>"
+                "</table>"
+                "</body>"
+                "</html>";
+
+//  server.send ( 200, "text/html", html );
+
 }
 
