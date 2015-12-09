@@ -11,11 +11,11 @@
 class RRApSettings{
   public:
     struct{
-      char ssid[24];
-      char pass[24];
+      char ssid[64];//defined max length
+      char pass[33];//definde max length
       byte enableHttpSend;
       char httpSendUrl[100];
-      unsigned int  httpSendInterval; //in seconds
+      unsigned int  httpSendInterval; //in minutes:
       
       }settings;
   
@@ -24,6 +24,7 @@ class RRApSettings{
 
     void saveSettings();
     void restoreSettings();
+    String wifiList();
   
   };
 

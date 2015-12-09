@@ -1,0 +1,57 @@
+<html>
+                <head>
+                <meta charset='utf-8' http-equiv='refresh'/>
+                <title>ESP8266</title>
+                <style>
+                body { background-color: #fff; font-family: Tahoma, Helvetica, Sans-Serif; color: #07113A;  font-size: 20px; }
+                a{color:#162756;text-decoration:none;}
+                input,select { font-size: 22px; color:inherit; }
+                table{border-collapse: separate;
+					 border: 2px solid #162756;
+				border-radius: 6px;
+				border-spacing: 0px;}
+               
+                th, td {
+                padding: 5px;
+                text-align: left;
+                }
+                ul{margin:5px;}
+                input:not([type=checkbox]),select,table{width:100%;}
+                </style>
+                <script>
+                function getN(name){return document.getElementsByName(name)[0];}
+                function tgl(name,ckb){getN(name).disabled=!getN(ckb).checked;}
+                function a(){tgl('posturl','enablePost');tgl('postinterval','enablePost');}
+                function rl(){location.reload();}
+                </script>
+                </head>
+                <body>
+				<form action='/search_WIFIs' method='get'>
+                <table>
+                <caption><h1><a href="#" onclick="rl();">Einstellungen WiFi &#x21BB;</a></h1></caption>
+                <tr>
+                <td>SSID:</td>
+                <td style="width:100%"> <select name="ssid"></select></td>
+                </tr>
+                <tr>
+                <td>Passwort:</td>
+                <td><input type='password'  maxlength='33' name='password'></td>
+                </tr>
+                <tr>
+                <td>HTTP&nbsp;Put:</td>
+                <td><input type='checkbox' id='ip' name='enablePost' onclick='a();'></td>
+                </tr>
+                <tr>
+                <td></td>
+                <td>URL: <input disabled type='text' placeholder='e.g.: http://sever.com/log.php?cnt={cnt}&tmp={temp}' maxlength="100" name='posturl'>
+					<ul><li>{cnt}: Count</li><li>{temp}: Temperature</li><li>{hum}: Humidity</li></ul>
+					<br/>Interval [min]: <input disabled type='number' step="1" name='postinterval'>
+				</td>
+                </tr>
+                <tr>
+                <td></td><td><button type='submit'>&#x2714; Speichern und Reboot</button><td>
+                </tr>
+                </table>
+                </form>
+                </body>
+                </html>
