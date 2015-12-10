@@ -39,12 +39,12 @@
                 </tr>
                 <tr>
                 <td>HTTP&nbsp;Put:</td>
-                <td><input type='checkbox' id='ip' name='enablePost' onclick='a();'></td>
+                <td><input type='checkbox' id='enablePut' name='enablePost' onclick='a();'><label for="enablePut">Aktiv</label></td>
                 </tr>
                 <tr>
                 <td></td>
                 <td>URL: <input disabled type='text' placeholder='e.g.: http://sever.com/log.php?cnt={cnt}&tmp={temp}' maxlength="100" name='posturl'>
-					<ul><li>{cnt}: Count</li><li>{temp}: Temperature</li><li>{hum}: Humidity</li></ul>
+					<ul><li>{cnt}: Count</li><li>{temp}: Temperatur</li><li>{hum}: Luftfeuchte</li><li>{time}: Uhrzeit</li></ul>
 					<br/>Interval [min]: <input disabled type='number' step="1" name='postinterval'>
 				</td>
                 </tr>
