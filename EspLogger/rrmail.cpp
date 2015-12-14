@@ -36,13 +36,13 @@ byte RRMail::sendMail(String to, String subject, String body){
  
   Serial.println(F("Sending User"));
 // Change to your base64 encoded user
-  client.println("c2xldm9u");
+  client.println("YXJkdWlub3Jy");
  
   if(!eRcv()) return 0;
  
   Serial.println(F("Sending Password"));
 // change to your base64 encoded password
-  client.println("GEHEIM!!!!!");
+  client.println("MDgwOTE5ODQ=");
  
   if(!eRcv()) return 0;
  
