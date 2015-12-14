@@ -58,23 +58,28 @@ void setup() {
 
   //Attach a GPIO Interrrupt
    attachInterrupt(2, pinChanged, RISING);
-
-  //enalbe Periodic sync to NTP:
-  //Setup ntp sync
-  setSyncProvider(rrtime.getTime);
-  setSyncInterval(60*60*12); 
-
+   
   rrsettings.restore();
-  //sprintf(rrsettings.settings.ssid,"Hallo Roman");
-  //Serial.print(" Gesetzt:");
-  //Serial.println(rrsettings.settings.ssid);
-  //rrsettings.settings.ssid=String("Hallo Roman").c_str();
-  //rrsettings.settings.ssid="geheim! Geheim";
-  //rrsettings.saveSettings();
+
+   //enalbe Periodic sync to NTP:
+  //Setup ntp sync
+  if(rrsettings.settings.enableNtp){
+    setSyncProvider(rrtime.getTime);
+    setSyncInterval(60*60*24); 
+  }
+
+
 
   server.on("/", handleRoot );
   server.on("/index", handleRoot );
-  server.on("/setup", setupWifi );
+  server.on("/wifi", setupWifi );
+  server.on("/ntp", setupNtp );
+  server.on("/email", []() {
+    server.send (200, "text/plain","TODO");
+  });
+  server.on("/telegram", []() {
+    server.send (200, "text/plain","TODO");
+  });
   server.on("/graph.svg", drawGraph);
   server.on("/get/count", []() {
     char temp[20];
@@ -96,10 +101,8 @@ void setup() {
 
 
 RRMail mail;
-  if(mail.sendMail("r.raekow@gmail.com","Test","Leer")) Serial.println("Email sent");
+  if(mail.sendMail("r.raekow@gmail.com","Test","Leerer inhalt der <h2>HTML</h2>enthält")) Serial.println("Email sent");
       else Serial.println("Email failed");
-
-  
 }
 
 int value = 0;
@@ -198,7 +201,8 @@ void handleNotFound() {
 void setupWifi() {
   //Check if we have a transmission of arguments, if so: Check if we can apply it to the settings:
   String statusString ="";
-  for ( uint8_t i = 0; i < server.args(); i++ ) {
+  if(server.args() > 0){
+    for ( uint8_t i = 0; i < server.args(); i++ ) {
       Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
       if(server.argName (i) == "ssid"){
         sprintf(rrsettings.settings.ssid, RRApSettings::urldecode(server.arg (i)).c_str());
@@ -212,16 +216,16 @@ void setupWifi() {
         rrsettings.settings.httpSendInterval= server.arg (i).toInt();
       }
     }
-  if(server.args() > 0){
-    statusString = "<div style='padding:10px; margin:10px;color:#fff;background:#07113A; border:2px solid #162756;border-radius: 6px;'>Settings saved</div>";
+    
+    statusString = "<div class'msgbox'>Einstellungen gespeichert</div>";
     rrsettings.save();
     rrsettings.restore();//Read back
   }
   
   
-  String html = htmlHeader()+statusString+"<form action='' method='post'>\
+  String html = htmlHeader()+statusString+"<h1><a href='#' onclick='rl();'>Einstellungen WLAN &#x21BB;</a></h1><form action='' method='post'>\
                  <table>\
-                  <caption><h1><a href='#' onclick='rl();'>Einstellungen WLAN &#x21BB;</a></h1></caption>\
+                  <caption></caption>\
                   <tr>\
                   <td>SSID:</td>\
                   <td style='width:100%'> <select name='ssid'>"+rrsettings.wifiList()+"</select></td>\
@@ -269,6 +273,40 @@ void drawGraph() {
   server.send ( 200, "image/svg+xml", out);
 }
 
+void setupNtp() {
+  //Check if we have a transmission of arguments, if so: Check if we can apply it to the settings:
+  String statusString ="";
+  if(server.args() > 0){
+    for ( uint8_t i = 0; i < server.args(); i++ ) {
+      Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
+      if(server.argName (i) == "enableNtp"){
+        rrsettings.settings.enableNtp=server.arg (i).toInt();
+      }
+    }
+    
+    statusString = "<div class'msgbox'>Einstellungen gespeichert</div>";
+    rrsettings.save(); 
+    rrsettings.restore();//Read back
+  }
+  
+  
+  String html = htmlHeader()+statusString+"<h1><a href='#' onclick='rl();'>Einstellungen NTP</a></h1>\
+                 <p>Aktivieren sie diese Funktion um die Uhr immer auktuell zu halten (Benötigt eine Internetverbindung).</p>\
+                 <p>Aktuelle Zeit:"+rrtime.dateTimeString()+"</p>\
+                 <form action='' method='post'>\
+                 <table>\
+                  <caption></caption>\
+                  <td>NTP</td>\
+                  <td><input type='checkbox' id='enablePut' name='enableNtp' onclick='a();' value='1' " + (rrsettings.settings.enableNtp?"checked":"") + " /><label for='enableNtp'>Aktiv</label></td>\
+                  </tr>\
+                  <tr>\
+                  <td></td><td><button type='submit'>&#x2714; Speichern</button><td>\
+                  </tr>\
+                  </table>\
+                  </form>"+htmlFooter(ESP.getFreeHeap());
+ server.send ( 200, "text/html", html );
+}
+
 
 String htmlHeader(){
   return String("<html>\
@@ -296,6 +334,7 @@ String htmlHeader(){
     letter-spacing: 2px;border-bottom: 2px solid transparent;}\
   ul.sonarmenu a:hover, ul.sonarmenu a:focus{outline: none;border-bottom: 2px solid #07113A;}\
   ul.sonarmenu a::before, ul.sonarmenu a:after{position: absolute;top: 50%;left: 50%;}\
+  .msgbox{padding:10px; margin:10px;color:#fff;background:#07113A; border:2px solid #162756;border-radius: 6px;}\
   </style>\
   <script>\
   function getN(name){return document.getElementsByName(name)[0];}\
@@ -307,10 +346,10 @@ String htmlHeader(){
   <body>\
   <ul class='sonarmenu'>\
   <li><a href='../index'>&#8962; Home</a></li>\
-  <li><a href='../setup'>&#x2699; WLAN</a></li>\
+  <li><a href='../wifi'>&#x2699; WLAN</a></li>\
   <li><a href='../email'>Email</a></li>\
   <li><a href='../ntp'>NTP</a></li>\
-  <li><a href='../telegramm'>Telegramm</a></li>\
+  <li><a href='../telegram'>Telegram</a></li>\
   </ul>\
   ");
   }

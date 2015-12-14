@@ -14,6 +14,8 @@ class RRApSettings{
       byte enableHttpSend;
       char httpSendUrl[100];
       unsigned int  httpSendInterval; //in minutes:
+      //ntp:
+      byte enableNtp;
       
       }settings;
   

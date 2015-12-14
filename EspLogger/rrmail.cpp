@@ -35,13 +35,11 @@ byte RRMail::sendMail(String to, String subject, String body){
   if(!eRcv()) return 0;
  
   Serial.println(F("Sending User"));
-// Change to your base64 encoded user
   client.println("YXJkdWlub3Jy");
  
   if(!eRcv()) return 0;
  
   Serial.println(F("Sending Password"));
-// change to your base64 encoded password
   client.println("MDgwOTE5ODQ=");
  
   if(!eRcv()) return 0;
@@ -53,7 +51,7 @@ byte RRMail::sendMail(String to, String subject, String body){
  
 // change to recipient address
   Serial.println(F("Sending To"));
-  client.println("RCPT To: r.raekow@gmail.com");
+  client.println("RCPT To: "+to);
   if(!eRcv()) return 0;
  
   Serial.println(F("Sending DATA"));
@@ -63,14 +61,14 @@ byte RRMail::sendMail(String to, String subject, String body){
   Serial.println(F("Sending email"));
  
 // change to recipient address
-  client.println("To: Roman r.raekow@gmail.com");
+  client.println("To: "+to);
  
 // change to your address
-  client.println("From: Peter r.raekow@gmail.com");
+  client.println("From: ESP8266 r.raekow@gmail.com");
  
-  client.println("Subject: Arduino email test\r\n");
+  client.println("Subject: "+subject+"\r\n");
  
-  client.println("This is from my Arduino!");
+  client.println(body);
  
   client.println(".");
  

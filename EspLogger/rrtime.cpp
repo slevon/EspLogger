@@ -88,8 +88,10 @@
 void RRTime::digitalClockDisplay(){
   // digital clock display of the time
   Serial.print(hour());
-  printDigits(minute());
-  printDigits(second());
+  Serial.print(":");
+  Serial.print(getDigits(minute()));
+  Serial.print(":");
+  Serial.print(getDigits(second()));
   Serial.print(" ");
   Serial.print(day());
   Serial.print(".");
@@ -99,13 +101,22 @@ void RRTime::digitalClockDisplay(){
   Serial.println(); 
 }
 
+String RRTime::timeString(){
+  return getDigits(hour())+":"+getDigits(minute())+":"+getDigits(second());
+}
+String RRTime::dateString(){
+   return getDigits(day())+"."+getDigits(month())+"."+year();
+}
+String RRTime::dateTimeString(){
+  return timeString()+" "+dateString();
+}
 
-void RRTime::printDigits(int digits){
-  // utility for digital clock display: prints preceding colon and leading 0
-  Serial.print(":");
+
+String RRTime::getDigits(int digits){
+  String ret;
   if(digits < 10)
-    Serial.print('0');
-  Serial.print(digits);
+    ret+="0";
+  return ret+digits;
 }
 
 // send an NTP request to the time server at the given address

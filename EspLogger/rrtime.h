@@ -14,9 +14,12 @@ class RRTime{
       static time_t getTime();
       //void enableAutoSync();  //Enables the autosync each 12hrs
       void digitalClockDisplay();
+      String timeString();
+      String dateString();
+      String dateTimeString();
 
     private:
-      void printDigits(int digits);
+      String getDigits(int digits);
       void sendNTPpacket(IPAddress &address);
   };
 
