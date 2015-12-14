@@ -1,0 +1,10 @@
+telnet mail.smtp2go.com 2525
+EHLO mail.smtp2go.com
+AUTH LOGIN
+c2xldm9u
+<BASE64 PASSWORD>
+MAIL FROM: r.raekow@gmail.com
+RCPT TO: r.raekow@gmail.com
+DATA
+.
+QUIT

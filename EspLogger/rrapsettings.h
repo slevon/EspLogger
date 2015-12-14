@@ -6,8 +6,6 @@
 
 #define RRAPSETTINGS_EEPROMSTART 0 // from wher on do we read/write
 
-
-
 class RRApSettings{
   public:
     struct{
@@ -22,9 +20,14 @@ class RRApSettings{
     RRApSettings();
     ~RRApSettings();
 
-    void saveSettings();
-    void restoreSettings();
+    void save();
+    void restore();
     String wifiList();
+    static String urldecode(String url);
+
+  private:
+  static unsigned char h2int(char c);
+
   
   };
 

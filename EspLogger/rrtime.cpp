@@ -85,20 +85,19 @@
     }
 
 
-    void RRTime::digitalClockDisplay(){
-      // digital clock display of the time
-      Serial.print(hour());
-      printDigits(minute());
-      printDigits(second());
-      Serial.print(" ");
-      Serial.print(day());
-      Serial.print(".");
-      Serial.print(month());
-      Serial.print(".");
-      Serial.print(year()); 
-      Serial.println(); 
-    }
-
+void RRTime::digitalClockDisplay(){
+  // digital clock display of the time
+  Serial.print(hour());
+  printDigits(minute());
+  printDigits(second());
+  Serial.print(" ");
+  Serial.print(day());
+  Serial.print(".");
+  Serial.print(month());
+  Serial.print(".");
+  Serial.print(year()); 
+  Serial.println(); 
+}
 
 
 void RRTime::printDigits(int digits){
