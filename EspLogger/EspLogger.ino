@@ -7,6 +7,7 @@
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
 #include <EEPROM.h>
+#include "rrmail.h"
 
 #include "rrtime.h"
 #include "rrapsettings.h"
@@ -92,6 +93,13 @@ void setup() {
   });
   server.onNotFound(handleNotFound);
   server.begin();
+
+
+RRMail mail;
+  if(mail.sendMail("r.raekow@gmail.com","Test","Leer")) Serial.println("Email sent");
+      else Serial.println("Email failed");
+
+  
 }
 
 int value = 0;
@@ -163,7 +171,7 @@ void handleRoot() {
       <p>Flash size: %d</p>",
     hr, min % 60, sec % 60,ESP.getFreeHeap(),ESP.getFlashChipSize()
   );
-  server.send ( 200, "text/html",  htmlHeader() +temp + htmlFooter());
+  server.send ( 200, "text/html",  htmlHeader() +temp + htmlFooter(ESP.getFreeHeap()));
   digitalWrite ( led, 0 );
 }
 
@@ -213,7 +221,7 @@ void setupWifi() {
   
   String html = htmlHeader()+statusString+"<form action='' method='post'>\
                  <table>\
-                  <caption><h1><a href='#' onclick='rl();'>Einstellungen WiFi &#x21BB;</a></h1></caption>\
+                  <caption><h1><a href='#' onclick='rl();'>Einstellungen WLAN &#x21BB;</a></h1></caption>\
                   <tr>\
                   <td>SSID:</td>\
                   <td style='width:100%'> <select name='ssid'>"+rrsettings.wifiList()+"</select></td>\
@@ -237,8 +245,7 @@ void setupWifi() {
                   <td></td><td><button type='submit'>&#x2714; Speichern und Reboot</button><td>\
                   </tr>\
                   </table>\
-                  </form>"+htmlFooter();
-
+                  </form>"+htmlFooter(ESP.getFreeHeap());
  server.send ( 200, "text/html", html );
 }
 
@@ -301,15 +308,16 @@ String htmlHeader(){
   <ul class='sonarmenu'>\
   <li><a href='../index'>&#8962; Home</a></li>\
   <li><a href='../setup'>&#x2699; WLAN</a></li>\
-  <li><a href='http://www.cssdrive.com'>  &#x1f5ab; Mail</a></li>\
-  <li><a href='http://www.dynamicdrive.com/forums/'>&#x23F1;NTP</a></li>\
-  <li><a href='http://www.javascriptkit.com'>JavaScript</a></li>\
+  <li><a href='../email'>Email</a></li>\
+  <li><a href='../ntp'>NTP</a></li>\
+  <li><a href='../telegramm'>Telegramm</a></li>\
   </ul>\
   ");
   }
 
-String htmlFooter(){
-  return String("</body>\
-    </html>");
+String htmlFooter(long heap){
+  return String("<p>Heap: ")+heap+" </p>\
+     </body>\
+    </html>";
   }
 

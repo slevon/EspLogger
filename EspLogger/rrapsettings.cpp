@@ -20,7 +20,6 @@ void RRApSettings::save(){
   }
 
 void RRApSettings::restore(){
-    
     EEPROM.begin(512);
     EEPROM.get(RRAPSETTINGS_EEPROMSTART,settings);
     EEPROM.end();
