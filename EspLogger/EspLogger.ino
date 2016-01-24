@@ -12,13 +12,6 @@
 #include "rrtime.h"
 #include "rrapsettings.h"
 
-//const char* ssid     = "lamed";
-//const char* password = "risJXPNY";
-//const char* ssid     = "FP1";
-//const char* password = "KatzeHundMaus";
-const char ssid[] = "Besser geht es";  //  your network SSID (name)
-const char password[] = "2005544074238576";       // your network password
-
 unsigned int cnt=0;
 unsigned int buffer[100]; //Buffer for the last 100 cnt s
 ESP8266WebServer server(80);
@@ -33,43 +26,51 @@ void pinChanged(){
 void setup() {
   Serial.begin(115200);
   delay(10);
+  rrsettings.restore();  //Get the settings;
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(ssid);
-  
-  WiFi.begin(ssid, password);
+  Serial.println(rrsettings.settings.ssid);
+
+  WiFi.mode(WIFI_STA); //default: join the WIFI
+  WiFi.begin(rrsettings.settings.ssid, rrsettings.settings.pass);
   
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(WiFi.status());
-    if(millis()>10000){
-      Serial.println("\n--->ERROR! No Connection!");
-      break;
+    if(millis()>15000){
+      Serial.println("\nERROR! No Connection!\nStarting AccessPoint:");
+        /* You can remove the password parameter if you want the AP to be open. */
+        WiFi.disconnect();
+        delay(100);
+        WiFi.mode(WIFI_AP); //create Access Pint
+        WiFi.softAP("ESP8266_2", "happyornot");
+        IPAddress myIP = WiFi.softAPIP();
+        Serial.println(myIP);
+        Serial.println("------------");
+        break;
       }
   }
 
-  Serial.println("");
-  Serial.println("WiFi connected");  
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("Heap:");
-  Serial.println(ESP.getFreeHeap());
-
+  if(WiFi.status() == WL_CONNECTED){
+    Serial.println("");
+    Serial.println("WiFi connected");  
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
   //Attach a GPIO Interrrupt
    attachInterrupt(2, pinChanged, RISING);
-   
-  rrsettings.restore();
 
    //enalbe Periodic sync to NTP:
   //Setup ntp sync
-  if(rrsettings.settings.enableNtp){
+  Serial.println("Checking NTP Service");
+  if(rrsettings.settings.ntpEnable){
     setSyncProvider(rrtime.getTime);
-    setSyncInterval(60*60*24); 
+    if(rrsettings.settings.ntpInterval<1){rrsettings.settings.ntpInterval = 1;} //not smaler than 1h
+    setSyncInterval((rrsettings.settings.ntpInterval)*3600); //interval is given in h
+    Serial.println("NTP Setup succeed: Every "+String(rrsettings.settings.ntpInterval) +" h");
   }
-
-
-
+  Serial.println("Checking NTP Service ended");
   server.on("/", handleRoot );
   server.on("/index", handleRoot );
   server.on("/wifi", setupWifi );
@@ -79,6 +80,14 @@ void setup() {
   });
   server.on("/telegram", []() {
     server.send (200, "text/plain","TODO");
+  });
+  server.on("/reboot", []() {
+    if(millis()>60000){
+    server.send (200, "text/html",htmlHeader()+"<h2>Ich starte neu. Bitte warten.</h2><script> setTimeout(function(){;window.location.assign('../index');},15000);</script>"+htmlFooter(ESP.getFreeHeap()));
+    }else{
+      server.send (200, "text/html",htmlHeader()+"<h2>Reboot abgebrochen. ESP uptime weniger als eine Minute. Bitte besuche die <a href='../index'>Indexseite</a></h2>"+htmlFooter(ESP.getFreeHeap()));
+    }
+    ESP.restart();
   });
   server.on("/graph.svg", drawGraph);
   server.on("/get/count", []() {
@@ -99,10 +108,11 @@ void setup() {
   server.onNotFound(handleNotFound);
   server.begin();
 
-
-RRMail mail;
+/*RRMail mail;
   if(mail.sendMail("r.raekow@gmail.com","Test","Leerer inhalt der <h2>HTML</h2>enthält")) Serial.println("Email sent");
       else Serial.println("Email failed");
+*/
+
 }
 
 int value = 0;
@@ -150,7 +160,6 @@ void loop() {
   Serial.println(cnt);
   cnt = 0;
   */
-
   server.handleClient();
 }
 
@@ -167,12 +176,13 @@ void handleRoot() {
   int hr = min / 60;
 
   snprintf ( temp, 400,
-      "<h1>Hello from ESP8266!</h1>\
+      "<h1>Hallo ich bin ESP8266!</h1>\
       <p>Uptime: %02d:%02d:%02d</p>\
+      <p>Zeit: %s</p>\
       <img src=\"/graph.svg\" />\
       <p>Heap: %d</p>\
       <p>Flash size: %d</p>",
-    hr, min % 60, sec % 60,ESP.getFreeHeap(),ESP.getFlashChipSize()
+    hr, min % 60, sec % 60,rrtime.dateTimeString().c_str(),ESP.getFreeHeap(),ESP.getFlashChipSize()
   );
   server.send ( 200, "text/html",  htmlHeader() +temp + htmlFooter(ESP.getFreeHeap()));
   digitalWrite ( led, 0 );
@@ -202,8 +212,11 @@ void setupWifi() {
   //Check if we have a transmission of arguments, if so: Check if we can apply it to the settings:
   String statusString ="";
   if(server.args() > 0){
+    //default to false. (http does not send checkboxes if false, otherwise will be rest
+    rrsettings.settings.enableHttpSend = false;
     for ( uint8_t i = 0; i < server.args(); i++ ) {
       Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
+      
       if(server.argName (i) == "ssid"){
         sprintf(rrsettings.settings.ssid, RRApSettings::urldecode(server.arg (i)).c_str());
       }else if(server.argName (i) == "password"){
@@ -216,41 +229,47 @@ void setupWifi() {
         rrsettings.settings.httpSendInterval= server.arg (i).toInt();
       }
     }
-    
-    statusString = "<div class'msgbox'>Einstellungen gespeichert</div>";
+    statusString = F("<div class='msgbox'>Einstellungen gespeichert. Nach <a href='../reboot'>Reboot</a> werden die Änderungen wirksam.</div>");
     rrsettings.save();
-    rrsettings.restore();//Read back
+    rrsettings.restore();
   }
   
-  
-  String html = htmlHeader()+statusString+"<h1><a href='#' onclick='rl();'>Einstellungen WLAN &#x21BB;</a></h1><form action='' method='post'>\
-                 <table>\
-                  <caption></caption>\
-                  <tr>\
-                  <td>SSID:</td>\
-                  <td style='width:100%'> <select name='ssid'>"+rrsettings.wifiList()+"</select></td>\
-                  </tr>\
-                  <tr>\
-                  <td>Passwort:</td>\
-                  <td><input type='password'  maxlength='33' name='password' value='"+rrsettings.settings.pass+"'></td>\
-                  </tr>\
-                  <tr>\
-                  <td>HTTP&nbsp;Put:</td>\
-                  <td><input type='checkbox' id='enablePut' name='enablePost' onclick='a();' value='1' " + (rrsettings.settings.enableHttpSend?"checked":"") + " /><label for='enablePut'>Aktiv</label></td>\
-                  </tr>\
-                  <tr>\
-                  <td></td>\
-                  <td>URL: <input " + (rrsettings.settings.enableHttpSend?"":"disabled") + " type='text' placeholder='e.g.: http://sever.com/log.php?cnt={cnt}&tmp={temp}' maxlength='100' name='posturl' value='" + rrsettings.settings.httpSendUrl + "' />\
-                    <ul><li>{cnt}: Count</li><li>{temp}: Temperatur</li><li>{hum}: Luftfeuchte</li><li>{time}: Uhrzeit</li></ul>\
-                    <br/>Interval [min]: <input " + (rrsettings.settings.enableHttpSend?"":"disabled") + " type='number' step='1' name='postinterval' value='"+rrsettings.settings.httpSendInterval+"'>\
-                  </td>\
-                  </tr>\
-                  <tr>\
-                  <td></td><td><button type='submit'>&#x2714; Speichern und Reboot</button><td>\
-                  </tr>\
-                  </table>\
-                  </form>"+htmlFooter(ESP.getFreeHeap());
- server.send ( 200, "text/html", html );
+    //The input fields need a dummy hidden filed to send a value if they are unchecked
+  String html = htmlHeader()+"<h1><a href='#' onclick='rl();'>Einstellungen WLAN &#x21BB;</a></h1>"+statusString+
+                 "<script>\
+function getN(name){return document.getElementsByName(name)[0];}\n\
+function tgl(name,ckb){getN(name).disabled=!getN(ckb).checked;}\n\
+function a(){tgl('posturl','enablePost');tgl('postinterval','enablePost');}\n\
+function rl(){location.reload();}\n\
+</script>\n\
+<form action='' method='post'>\n\
+<table>\
+<caption></caption>\
+<tr>\
+<td>SSID:</td>\
+<td style='width:100%'> <select name='ssid'>"+rrsettings.wifiList()+"</select></td>\
+</tr>\n\
+<tr>\
+<td>Passwort:</td>\
+<td><input type='password'  maxlength='33' name='password' value='"+rrsettings.settings.pass+"'></td>\
+</tr>\
+<tr>\
+<td>HTTP&nbsp;Put:</td><td>\
+<input type='checkbox' id='enablePut' name='enablePost' onclick='a();' value='1' " + (rrsettings.settings.enableHttpSend?"checked":"") + " /><label for='enablePut'>Aktiv</label></td>\
+</tr>\
+<tr>\n\
+<td></td>\
+<td>URL: <input " + (rrsettings.settings.enableHttpSend?"":"disabled") + " type='text' placeholder='e.g.: http://sever.com/log.php?cnt={cnt}&tmp={temp}' maxlength='100' name='posturl' value='" + rrsettings.settings.httpSendUrl + "' />\
+<ul><li>{cnt}: Count</li><li>{temp}: Temperatur</li><li>{hum}: Luftfeuchte</li><li>{time}: Uhrzeit</li></ul>\
+<br/>Interval [min]: <input " + (rrsettings.settings.enableHttpSend?"":"disabled") + " type='number' step='1' name='postinterval' value='"+rrsettings.settings.httpSendInterval+"'>\
+</td>\
+</tr>\n\
+<tr>\
+<td></td><td><button type='submit'>&#x2714; Speichern und Reboot</button><td>\
+</tr>\
+</table>\
+</form>"+htmlFooter(ESP.getFreeHeap());
+ server.send( 200, "text/html", html );
 }
 
 void drawGraph() {
@@ -280,39 +299,62 @@ void setupNtp() {
     for ( uint8_t i = 0; i < server.args(); i++ ) {
       Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
       if(server.argName (i) == "enableNtp"){
-        rrsettings.settings.enableNtp=server.arg (i).toInt();
+        rrsettings.settings.ntpEnable=server.arg (i).toInt();
+      }
+      if(server.argName (i) == "ntpInterval"){
+        int newInterval=server.arg (i).toInt();
+        if(newInterval > 0){
+          rrsettings.settings.ntpInterval=newInterval;
+        }
       }
     }
     
-    statusString = "<div class'msgbox'>Einstellungen gespeichert</div>";
+    statusString = F("<div class='msgbox'>Einstellungen gespeichert. Nach <a href='../reboot'>Reboot</a> werden die Änderungen wirksam.</div>");
     rrsettings.save(); 
     rrsettings.restore();//Read back
   }
+
+
+  unsigned long last=(millis() - rrtime.getLastSync())/1000;
+  byte s=last%60;
+  byte m=s/60; 
+  byte h=m/60;
+ 
+ 
   
-  
-  String html = htmlHeader()+statusString+"<h1><a href='#' onclick='rl();'>Einstellungen NTP</a></h1>\
-                 <p>Aktivieren sie diese Funktion um die Uhr immer auktuell zu halten (Benötigt eine Internetverbindung).</p>\
-                 <p>Aktuelle Zeit:"+rrtime.dateTimeString()+"</p>\
-                 <form action='' method='post'>\
-                 <table>\
-                  <caption></caption>\
-                  <td>NTP</td>\
-                  <td><input type='checkbox' id='enablePut' name='enableNtp' onclick='a();' value='1' " + (rrsettings.settings.enableNtp?"checked":"") + " /><label for='enableNtp'>Aktiv</label></td>\
-                  </tr>\
-                  <tr>\
-                  <td></td><td><button type='submit'>&#x2714; Speichern</button><td>\
-                  </tr>\
-                  </table>\
-                  </form>"+htmlFooter(ESP.getFreeHeap());
+  //The input fields need a dummy hidden filed to send a value if they are unchecked
+  String html = htmlHeader()+"<h1><a href='#' onclick='rl();'>Einstellungen NTP</a></h1>"+statusString+
+ "<p>Aktivieren sie diese Funktion um die Uhr immer auktuell zu halten (Benötigt eine Internetverbindung).</p>\
+ <p>Aktuelle Zeit:"+rrtime.dateTimeString()+"</p>\
+ <p>NTP Status:"+rrtime.getStatus()+"</p>\
+ <p>Letzter Sync:"+h+"h "+m+"m "+s+"s</p>\
+ <p>Sync Interval:"+rrsettings.settings.ntpInterval+"h</p>\
+ <form action='' method='post'>\n\
+ <table>\
+  <caption></caption>\
+  <tr>\
+  <td>NTP</td>\
+  <td><input type='hidden' value='0' name='enableNtp'/>\
+  <input type='checkbox' id='enableNtp' name='enableNtp' onclick='a();' value='1' " + (rrsettings.settings.ntpEnable?"checked":"") + " /><label for='enableNtp'>Aktiv</label></td>\
+  </tr>\
+  <tr>\
+  <td>Update</td>\
+  <td><input type='number' step='1'  min='1' name='ntpInterval' value='" + rrsettings.settings.ntpInterval + "'  /> Stunden</td>\
+  </tr>\
+  <tr>\
+  <td></td><td><button type='submit'>&#x2714; Speichern</button><td>\
+  </tr>\
+  </table>\
+  </form>"+htmlFooter(ESP.getFreeHeap());
  server.send ( 200, "text/html", html );
 }
 
 
 String htmlHeader(){
-  return String("<html>\
+  return F("<html>\
   <head>\
   <meta charset='utf-8' http-equiv='refresh'/>\
-  <title>ESP8266</title>\
+  <title>ESP8266</title>\n\
   <style>\
   body { background-color: #fff; font-family: Tahoma, Helvetica, Sans-Serif; color: #07113A;  font-size: 20px; }\
   a{color:#162756;text-decoration:none;}\
@@ -321,27 +363,20 @@ String htmlHeader(){
      border: 2px solid #162756;\
   border-radius: 6px;\
   border-spacing: 0px;}\
-   \
   th, td {\
   padding: 5px;\
   text-align: left;\
   }\
   ul{margin:5px;}\
   input:not([type=checkbox]),select,table{width:100%;}\
-  ul.sonarmenu{list-style: none;}\
+  ul.sonarmenu{list-style: none;}\n\
   ul.sonarmenu li{display: inline;}\
   ul.sonarmenu a{position: relative;display: inline-block;color: #07113A;text-decoration: none;margin: 10px 20px;text-transform: uppercase;font-size: 22px;\
     letter-spacing: 2px;border-bottom: 2px solid transparent;}\
   ul.sonarmenu a:hover, ul.sonarmenu a:focus{outline: none;border-bottom: 2px solid #07113A;}\
   ul.sonarmenu a::before, ul.sonarmenu a:after{position: absolute;top: 50%;left: 50%;}\
   .msgbox{padding:10px; margin:10px;color:#fff;background:#07113A; border:2px solid #162756;border-radius: 6px;}\
-  </style>\
-  <script>\
-  function getN(name){return document.getElementsByName(name)[0];}\
-  function tgl(name,ckb){getN(name).disabled=!getN(ckb).checked;}\
-  function a(){tgl('posturl','enablePost');tgl('postinterval','enablePost');}\
-  function rl(){location.reload();}\
-  </script>\
+  </style>\n\
   </head>\
   <body>\
   <ul class='sonarmenu'>\
@@ -350,12 +385,13 @@ String htmlHeader(){
   <li><a href='../email'>Email</a></li>\
   <li><a href='../ntp'>NTP</a></li>\
   <li><a href='../telegram'>Telegram</a></li>\
-  </ul>\
+  <li><a href='../reboot'>Reboot</a></li>\
+  </ul>\n\
   ");
   }
 
 String htmlFooter(long heap){
-  return String("<p>Heap: ")+heap+" </p>\
+  return String("<p><small>Heap: ")+heap+" </small></p>\
      </body>\
     </html>";
   }

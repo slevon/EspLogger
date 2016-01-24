@@ -1,0 +1,51 @@
+
+
+<svg xmlns='http://www.w3.org/2000/svg' version='1.1' width='400' height='200'>
+<style>.data:hover{stroke-width: 6;}
+.data{stroke-width: 3; stroke-linecap:round;}
+.legend{stroke-width:1; stroke-dasharray:2,2;}</style>
+<rect  width='365' height='180' fill='#516291' stroke='#07153B' /><g stroke='#07153B'><text x='367' y='187.000000' style='font-size:9pt;' >10.000000</text>
+<text x='367' y='151.400000' style='font-size:9pt;' >17.000000</text>
+<line class='legend' x1='0' x2='367' y1='142.400000' y2='142.400000' />
+<text x='367' y='115.800000' style='font-size:9pt;' >24.000000</text>
+<line class='legend' x1='0' x2='367' y1='106.800000' y2='106.800000' />
+<text x='367' y='80.200000' style='font-size:9pt;' >31.000000</text>
+<line class='legend' x1='0' x2='367' y1='71.200000' y2='71.200000' />
+<text x='367' y='44.600000' style='font-size:9pt;' >38.000000</text>
+<line class='legend' x1='0' x2='367' y1='35.600000' y2='35.600000' />
+<line  class='data' y1='45.771429' x1='0'  y2='40.685714' x2='15'  title='36.000000 nach 37.000000' />
+<line class='legend' y1='0' y2='182' x1='15' x2='15' /><text x='6' y='199' style='font-size:9pt;' >00</text>
+<line  class='data' y1='40.685714' x1='15'  y2='35.600000' x2='30'  title='37.000000 nach 38.000000' />
+<line class='legend' y1='0' y2='182' x1='30' x2='30' /><line  class='data' y1='35.600000' x1='30'  y2='30.514286' x2='45'  title='38.000000 nach 39.000000' />
+<line class='legend' y1='0' y2='182' x1='45' x2='45' /><text x='36' y='199' style='font-size:9pt;' >02</text>
+<line  class='data' y1='30.514286' x1='45'  y2='25.428571' x2='60'  title='39.000000 nach 40.000000' />
+<line class='legend' y1='0' y2='182' x1='60' x2='60' /><line  class='data' y1='25.428571' x1='60'  y2='20.342857' x2='75'  title='40.000000 nach 41.000000' />
+<line class='legend' y1='0' y2='182' x1='75' x2='75' /><text x='66' y='199' style='font-size:9pt;' >5</text>
+<line  class='data' y1='20.342857' x1='75'  y2='15.257143' x2='90'  title='41.000000 nach 42.000000' />
+<line class='legend' y1='0' y2='182' x1='90' x2='90' /><line  class='data' y1='15.257143' x1='90'  y2='10.171429' x2='105'  title='42.000000 nach 43.000000' />
+<line class='legend' y1='0' y2='182' x1='105' x2='105' /><text x='96' y='199' style='font-size:9pt;' >7</text>
+<line  class='data' y1='10.171429' x1='105'  y2='5.085714' x2='120'  title='43.000000 nach 44.000000' />
+<line class='legend' y1='0' y2='182' x1='120' x2='120' /><line  class='data' y1='5.085714' x1='120'  y2='0.000000' x2='135'  title='44.000000 nach 45.000000' />
+<line class='legend' y1='0' y2='182' x1='135' x2='135' /><text x='126' y='199' style='font-size:9pt;' >9</text>
+<line  class='data' y1='0.000000' x1='135'  y2='178.000000' x2='150'  title='45.000000 nach 10.000000' />
+<line class='legend' y1='0' y2='182' x1='150' x2='150' /><line  class='data' y1='178.000000' x1='150'  y2='172.914286' x2='165'  title='10.000000 nach 11.000000' />
+<line class='legend' y1='0' y2='182' x1='165' x2='165' /><text x='156' y='199' style='font-size:9pt;' >11</text>
+<line  class='data' y1='172.914286' x1='165'  y2='167.828571' x2='180'  title='11.000000 nach 12.000000' />
+<line class='legend' y1='0' y2='182' x1='180' x2='180' /><line  class='data' y1='167.828571' x1='180'  y2='127.142857' x2='195'  title='12.000000 nach 20.000000' />
+<line class='legend' y1='0' y2='182' x1='195' x2='195' /><text x='186' y='199' style='font-size:9pt;' >13</text>
+<line  class='data' y1='127.142857' x1='195'  y2='106.800000' x2='210'  title='20.000000 nach 24.000000' />
+<line class='legend' y1='0' y2='182' x1='210' x2='210' /><line  class='data' y1='106.800000' x1='210'  y2='106.800000' x2='225'  title='24.000000 nach 24.000000' />
+<line class='legend' y1='0' y2='182' x1='225' x2='225' /><text x='216' y='199' style='font-size:9pt;' >15</text>
+<line  class='data' y1='106.800000' x1='225'  y2='19.071429' x2='240'  title='24.000000 nach 41.250000' />
+<line class='legend' y1='0' y2='182' x1='240' x2='240' /><line  class='data' y1='19.071429' x1='240'  y2='19.071429' x2='255'  title='41.250000 nach 41.250000' />
+<line class='legend' y1='0' y2='182' x1='255' x2='255' /><text x='246' y='199' style='font-size:9pt;' >17</text>
+<line  class='data' y1='19.071429' x1='255'  y2='19.071429' x2='270'  title='41.250000 nach 41.250000' />
+<line class='legend' y1='0' y2='182' x1='270' x2='270' /><line  class='data' y1='19.071429' x1='270'  y2='66.750000' x2='285'  title='41.250000 nach 31.875000' />
+<line class='legend' y1='0' y2='182' x1='285' x2='285' /><text x='276' y='199' style='font-size:9pt;' >19</text>
+<line  class='data' y1='66.750000' x1='285'  y2='66.114286' x2='300'  title='31.875000 nach 32.000000' />
+<line class='legend' y1='0' y2='182' x1='300' x2='300' /><line  class='data' y1='66.114286' x1='300'  y2='66.114286' x2='315'  title='32.000000 nach 32.000000' />
+<line class='legend' y1='0' y2='182' x1='315' x2='315' /><text x='306' y='199' style='font-size:9pt;' >21</text>
+<line  class='data' y1='66.114286' x1='315'  y2='35.600000' x2='330'  title='32.000000 nach 38.000000' />
+<line class='legend' y1='0' y2='182' x1='330' x2='330' /><line  class='data' y1='35.600000' x1='330'  y2='35.600000' x2='345'  title='38.000000 nach 38.000000' />
+<line class='legend' y1='0' y2='182' x1='345' x2='345' /><text x='336' y='199' style='font-size:9pt;' >23</text>
+</g></svg>
