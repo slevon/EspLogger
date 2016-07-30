@@ -1,12 +1,18 @@
 /*
  *  This sketch creates a IOT Thing
  */
+
+#define VERSION "0.1"
+
 #include <TimeLib.h>
 #include <Time.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
 #include <EEPROM.h>
+//Telegram
+#include <WiFiClientSecure.h>
+#include <TelegramBot.h>
 #include "rrmail.h"
 
 #include "rrtime.h"
@@ -17,16 +23,25 @@ unsigned int buffer[100]; //Buffer for the last 100 cnt s
 ESP8266WebServer server(80);
 RRTime rrtime;
 RRApSettings rrsettings;
-const int led = 13;
+const int led = 1;
+
+
+// Initialize Telegram BOT
+TelegramBOT* bot;
 
 void pinChanged(){
   cnt++;
+  //digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));  
 }
 
 void setup() {
   Serial.begin(115200);
   delay(10);
+  //pinMode(BUILTIN_LED, INPUT); 
+  //pinMode(BUILTIN_LED, OUTPUT); 
+  
   rrsettings.restore();  //Get the settings;
+  
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
@@ -58,6 +73,13 @@ void setup() {
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
   }
+  //Telegramm:
+  //bot = new TelegramBOT(rrsettings.settings.BotToken, rrsettings.settings.BotName, rrsettings.settings.BotUsername);
+  //bot->begin();      // launch Bot functionalities
+  //if(rrsettings.settings.BotEnable){
+  //  bot->sendMessage(rrsettings.settings.BotChatId, "ESPLogger Tool ist Online\n", "");
+  //}
+  
   //Attach a GPIO Interrrupt
    attachInterrupt(2, pinChanged, RISING);
 
@@ -71,19 +93,15 @@ void setup() {
     Serial.println("NTP Setup succeed: Every "+String(rrsettings.settings.ntpInterval) +" h");
   }
   Serial.println("Checking NTP Service ended");
-  server.on("/", handleRoot );
-  server.on("/index", handleRoot );
-  server.on("/wifi", setupWifi );
-  server.on("/ntp", setupNtp );
-  server.on("/email", []() {
-    server.send (200, "text/plain","TODO");
-  });
-  server.on("/telegram", []() {
-    server.send (200, "text/plain","TODO");
-  });
+    server.on("/", handleRoot );
+    server.on("/index", handleRoot );
+    server.on("/wifi", setupWifi );
+    server.on("/ntp", setupNtp );
+    server.on("/email",setupEmail);
+  server.on("/telegram", setupTelegram);
   server.on("/reboot", []() {
     if(millis()>60000){
-    server.send (200, "text/html",htmlHeader()+"<h2>Ich starte neu. Bitte warten.</h2><script> setTimeout(function(){;window.location.assign('../index');},15000);</script>"+htmlFooter(ESP.getFreeHeap()));
+      server.send (200, "text/html",htmlHeader()+"<h2>Ich starte neu. Bitte warten.</h2><script> setTimeout(function(){;window.location.assign('../index');},15000);</script>"+htmlFooter(ESP.getFreeHeap()));
     }else{
       server.send (200, "text/html",htmlHeader()+"<h2>Reboot abgebrochen. ESP uptime weniger als eine Minute. Bitte besuche die <a href='../index'>Indexseite</a></h2>"+htmlFooter(ESP.getFreeHeap()));
     }
@@ -107,12 +125,11 @@ void setup() {
   });
   server.onNotFound(handleNotFound);
   server.begin();
-
-/*RRMail mail;
-  if(mail.sendMail("r.raekow@gmail.com","Test","Leerer inhalt der <h2>HTML</h2>enthält")) Serial.println("Email sent");
+/*
+RRMail mail;
+  if(mail.sendMail("r.raekow@gmail.com;roman.raekow@gmx.de;wurzelpost@gmail.com","Test","Leerer inhalt der <h2>HTML</h2>enthält")) Serial.println("Email sent");
       else Serial.println("Email failed");
 */
-
 }
 
 int value = 0;
@@ -165,6 +182,13 @@ void loop() {
 
 
 
+
+
+#define STATUS_REBOOT "<div class='msgbox'>Einstellungen gespeichert. Nach <a href='../reboot'>Reboot</a> werden die Änderungen wirksam.</div>"
+
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // Websites
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -176,20 +200,24 @@ void handleRoot() {
   int hr = min / 60;
 
   snprintf ( temp, 400,
-      "<h1>Hallo ich bin ESP8266!</h1>\
+      "<h1>Hallo ich bin <em>%s</em></h1>\
       <p>Uptime: %02d:%02d:%02d</p>\
       <p>Zeit: %s</p>\
       <img src=\"/graph.svg\" />\
+      <p>Firmware: %s  vom %s %s</p>\
       <p>Heap: %d</p>\
       <p>Flash size: %d</p>",
-    hr, min % 60, sec % 60,rrtime.dateTimeString().c_str(),ESP.getFreeHeap(),ESP.getFlashChipSize()
+    rrsettings.settings.deviceName,
+    hr, min % 60, sec % 60,rrtime.dateTimeString().c_str(),VERSION ,__DATE__,__TIME__,ESP.getFreeHeap(),ESP.getFlashChipSize()
   );
   server.send ( 200, "text/html",  htmlHeader() +temp + htmlFooter(ESP.getFreeHeap()));
-  digitalWrite ( led, 0 );
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////
 void handleNotFound() {
-  digitalWrite ( led, 1 );
   String message = "File Not Found\n\n";
   message += "URI: ";
   message += server.uri();
@@ -208,6 +236,9 @@ void handleNotFound() {
 }
 
 
+/////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////
 void setupWifi() {
   //Check if we have a transmission of arguments, if so: Check if we can apply it to the settings:
   String statusString ="";
@@ -227,9 +258,17 @@ void setupWifi() {
         sprintf(rrsettings.settings.httpSendUrl, RRApSettings::urldecode(server.arg(i)).c_str());
       }else if(server.argName (i) == "postinterval"){
         rrsettings.settings.httpSendInterval= server.arg (i).toInt();
+      }else if(server.argName (i) == "deviceName"){
+        sprintf(rrsettings.settings.deviceName, RRApSettings::urldecode(server.arg(i)).c_str());
+      }else if(server.argName (i) == "deviceFloor"){
+        rrsettings.settings.deviceFloor = server.arg(i).toInt();
+      }else if(server.argName (i) == "deviceId"){
+        rrsettings.settings.deviceId = server.arg(i).toInt();
+      }else if(server.argName (i) == "deviceRoom"){
+        sprintf(rrsettings.settings.deviceRoom, RRApSettings::urldecode(server.arg(i)).c_str());
       }
     }
-    statusString = F("<div class='msgbox'>Einstellungen gespeichert. Nach <a href='../reboot'>Reboot</a> werden die Änderungen wirksam.</div>");
+    statusString = STATUS_REBOOT;
     rrsettings.save();
     rrsettings.restore();
   }
@@ -259,19 +298,39 @@ function rl(){location.reload();}\n\
 </tr>\
 <tr>\n\
 <td></td>\
-<td>URL: <input " + (rrsettings.settings.enableHttpSend?"":"disabled") + " type='text' placeholder='e.g.: http://sever.com/log.php?cnt={cnt}&tmp={temp}' maxlength='100' name='posturl' value='" + rrsettings.settings.httpSendUrl + "' />\
-<ul><li>{cnt}: Count</li><li>{temp}: Temperatur</li><li>{hum}: Luftfeuchte</li><li>{time}: Uhrzeit</li></ul>\
+<td>URL: <input " + (rrsettings.settings.enableHttpSend?"":"disabled") + " type='text' placeholder='e.g.: http://sever.com/log.php?id={id}&cnt={cnt}&tmp={temp}' maxlength='"+RRAPSETTINGS_DOUBLE_LONG_STRING+"' name='posturl' value='" + rrsettings.settings.httpSendUrl + "' />\
+<ul><li>{cnt}: Count</li><li>{temp}: Temperatur</li><li>{hum}: Luftfeuchte</li><li>{time}: Uhrzeit</li><li>{id}: DeviceId</li></ul>\
 <br/>Interval [min]: <input " + (rrsettings.settings.enableHttpSend?"":"disabled") + " type='number' step='1' name='postinterval' value='"+rrsettings.settings.httpSendInterval+"'>\
 </td>\
 </tr>\n\
 <tr>\
-<td></td><td><button type='submit'>&#x2714; Speichern und Reboot</button><td>\
+<td>Device Id</td><td>\
+<input type='number' step='1' min='0' name='deviceId' value='"+rrsettings.settings.deviceId+"' /></td>\
+</tr>\n\
+<tr>\
+<td>Device Name</td><td>\
+<input type='text' name='deviceName' value='"+rrsettings.settings.deviceName+"' placeholder='z.B. Flur-Licht' maxlength='"+RRAPSETTINGS_SHORT_STRING+"' /></td>\
+</tr>\n\
+<tr>\
+<td>Device Raum</td><td>\
+<input type='text' name='deviceRoom' value='"+rrsettings.settings.deviceRoom+"' placeholder='DG' maxlength='"+RRAPSETTINGS_SHORT_STRING+"' /></td>\
+</tr>\n\
+<tr>\
+<td>Device&nbsp;Stockwerk</td><td>\
+<input type='number'  step='1'  name='deviceFloor' value='"+rrsettings.settings.deviceFloor+"' /></td>\
+</tr>\n\
+<tr>\
+<td></td><td><button type='submit'>&#x2714; Speichern</button><td>\
 </tr>\
 </table>\
 </form>"+htmlFooter(ESP.getFreeHeap());
  server.send( 200, "text/html", html );
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////
 void drawGraph() {
   String out = "";
   char temp[100];
@@ -292,6 +351,10 @@ void drawGraph() {
   server.send ( 200, "image/svg+xml", out);
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////
 void setupNtp() {
   //Check if we have a transmission of arguments, if so: Check if we can apply it to the settings:
   String statusString ="";
@@ -309,18 +372,15 @@ void setupNtp() {
       }
     }
     
-    statusString = F("<div class='msgbox'>Einstellungen gespeichert. Nach <a href='../reboot'>Reboot</a> werden die Änderungen wirksam.</div>");
+    statusString =STATUS_REBOOT;
     rrsettings.save(); 
     rrsettings.restore();//Read back
   }
-
 
   unsigned long last=(millis() - rrtime.getLastSync())/1000;
   byte s=last%60;
   byte m=s/60; 
   byte h=m/60;
- 
- 
   
   //The input fields need a dummy hidden filed to send a value if they are unchecked
   String html = htmlHeader()+"<h1><a href='#' onclick='rl();'>Einstellungen NTP</a></h1>"+statusString+
@@ -350,6 +410,126 @@ void setupNtp() {
 }
 
 
+/////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////
+void setupEmail() {
+  //Check if we have a transmission of arguments, if so: Check if we can apply it to the settings:
+  String statusString ="";
+  if(server.args() > 0){
+    for ( uint8_t i = 0; i < server.args(); i++ ) {
+      Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
+      if(server.argName (i) == "mailEnable"){
+        rrsettings.settings.mailEnable=server.arg (i).toInt();
+      }
+      if(server.argName (i) == "mailReceiver"){
+           sprintf(rrsettings.settings.mailReceiver, RRApSettings::urldecode(server.arg(i)).c_str());
+        }
+      }
+    
+    statusString =STATUS_REBOOT;
+    rrsettings.save(); 
+    rrsettings.restore();//Read back
+  }
+
+  unsigned long last=(millis() - rrtime.getLastSync())/1000;
+  byte s=last%60;
+  byte m=s/60; 
+  byte h=m/60;
+  
+  //The input fields need a dummy hidden filed to send a value if they are unchecked
+  String html = htmlHeader()+"<h1><a href='#' onclick='rl();'>Einstellungen Email</a></h1>"+statusString+
+ "\
+ <form action='' method='post'>\n\
+ <table>\
+  <caption></caption>\
+  <tr>\
+  <td>Email</td>\
+  <td><input type='hidden' value='0' name='mailEnable'/>\
+  <input type='checkbox' id='mailEnable' name='mailEnable' value='1' " + (rrsettings.settings.mailEnable?"checked":"") + " /><label for='mailEnable'>Aktiv</label></td>\
+  </tr>\
+  <tr>\
+  <td>Email</td>\
+  <td><input type='text' name='mailReceiver' value='"+rrsettings.settings.mailReceiver+"' placeholder='a@b.com;c@d.com' maxlength='"+RRAPSETTINGS_DOUBLE_LONG_STRING+"' title='Mehrere Emails mit \';\' trennen' /></td>\
+  </tr>\
+  <tr>\
+  <td></td><td><button type='submit'>&#x2714; Speichern</button><td>\
+  </tr>\
+  </table>\
+  </form>"+htmlFooter(ESP.getFreeHeap());
+ server.send ( 200, "text/html", html );
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////
+void setupTelegram() {
+  //Check if we have a transmission of arguments, if so: Check if we can apply it to the settings:
+  String statusString ="";
+  if(server.args() > 0){
+    for ( uint8_t i = 0; i < server.args(); i++ ) {
+      Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
+      if(server.argName (i) == "BotEnable"){
+        rrsettings.settings.BotEnable=server.arg (i).toInt();
+      }
+      if(server.argName (i) == "BotToken"){
+         sprintf(rrsettings.settings.BotToken,RRApSettings::urldecode(server.arg(i)).c_str());
+      }
+      if(server.argName (i) == "BotName"){
+           sprintf(rrsettings.settings.BotName,RRApSettings::urldecode(server.arg(i)).c_str());
+      }
+      if(server.argName (i) == "BotUsername"){
+           sprintf(rrsettings.settings.BotUsername,RRApSettings::urldecode(server.arg(i)).c_str());
+      }
+      if(server.argName (i) == "BotChatId"){
+           sprintf(rrsettings.settings.BotChatId,RRApSettings::urldecode(server.arg(i)).c_str());
+      }
+    }
+    
+    statusString = STATUS_REBOOT;
+    rrsettings.save(); 
+    rrsettings.restore();//Read back
+  }
+    //The input fields need a dummy hidden filed to send a value if they are unchecked
+  String html = htmlHeader()+"<h1><a href='#' onclick='rl();'>Einstellungen Telegram</a></h1>"+statusString+
+ "<p>Aktivieren sie diese Funktion um Meldungen über Telegramm auszutauschen.</p>\
+ <form action='' method='post'>\n\
+ <table>\
+  <caption></caption>\
+  <tr>\
+  <td>Telegram</td>\
+  <td><input type='hidden' value='0' name='BotEnable'/>\
+  <input type='checkbox' id='BotEnable' name='BotEnable' value='1' " + (rrsettings.settings.BotEnable?"checked":"") + " /><label for='BotEnable'>Aktiv</label></td>\
+  </tr>\
+  <tr>\
+  <td>Token</td>\
+  <td><input type='text' name='BotToken' value='" + rrsettings.settings.BotToken + "'  /></td>\
+  </tr>\
+  <tr>\
+  <td>Bot-Name</td>\
+  <td><input type='text' name='BotName' value='" + rrsettings.settings.BotName + "'  /></td>\
+  </tr>\
+  <tr>\
+  <td>User-Name</td>\
+  <td><input type='text' name='BotUsername' value='" + rrsettings.settings.BotUsername + "'  /></td>\
+  </tr>\
+  <tr>\
+  <td>Chat-ID</td>\
+  <td><input type='text' name='BotChatId' value='" + rrsettings.settings.BotChatId + "'  /></td>\
+  </tr>\
+  <tr>\
+  <td></td><td><button type='submit'>&#x2714; Speichern</button><td>\
+  </tr>\
+  </table>\
+  </form>"+htmlFooter(ESP.getFreeHeap());
+ server.send ( 200, "text/html", html );
+  }
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////
 String htmlHeader(){
   return F("<html>\
   <head>\
@@ -376,12 +556,13 @@ String htmlHeader(){
   ul.sonarmenu a:hover, ul.sonarmenu a:focus{outline: none;border-bottom: 2px solid #07113A;}\
   ul.sonarmenu a::before, ul.sonarmenu a:after{position: absolute;top: 50%;left: 50%;}\
   .msgbox{padding:10px; margin:10px;color:#fff;background:#07113A; border:2px solid #162756;border-radius: 6px;}\
+  .msgbox a {color:#aaa;}\
   </style>\n\
   </head>\
   <body>\
   <ul class='sonarmenu'>\
   <li><a href='../index'>&#8962; Home</a></li>\
-  <li><a href='../wifi'>&#x2699; WLAN</a></li>\
+  <li><a href='../wifi'>&#x2699; WLAN/Http</a></li>\
   <li><a href='../email'>Email</a></li>\
   <li><a href='../ntp'>NTP</a></li>\
   <li><a href='../telegram'>Telegram</a></li>\
@@ -389,10 +570,14 @@ String htmlHeader(){
   </ul>\n\
   ");
   }
-
+/////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////
 String htmlFooter(long heap){
   return String("<p><small>Heap: ")+heap+" </small></p>\
      </body>\
     </html>";
   }
+
+
 

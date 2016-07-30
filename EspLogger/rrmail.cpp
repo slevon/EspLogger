@@ -15,7 +15,7 @@ RRMail::~RRMail(){
 byte RRMail::sendMail(String to, String subject, String body){   
   byte thisByte = 0;
   byte respCode;
- 
+   Serial.println(F("STARTING EMail:"));
   if(client.connect("mail.smtp2go.com",2525) == 1) {
     Serial.println(F("connected"));
   } else {
@@ -26,7 +26,6 @@ byte RRMail::sendMail(String to, String subject, String body){
   if(!eRcv()) return 0;
  
   Serial.println(F("Sending hello"));
-// replace 1.2.3.4 with your Arduino's ip
   client.println("EHLO mail.smtp2go.com");
   if(!eRcv()) return 0;
  
@@ -50,8 +49,17 @@ byte RRMail::sendMail(String to, String subject, String body){
   if(!eRcv()) return 0;
  
 // change to recipient address
-  Serial.println(F("Sending To"));
-  client.println("RCPT To: "+to);
+  
+  //Split Receipeints by ';'
+  int lastTo=0;
+  String recpt;
+  while(to.indexOf(';',lastTo) != -1){
+    Serial.print(F("Sending To: "));
+    recpt=to.substring(lastTo,to.indexOf(';',lastTo));
+    Serial.println(recpt);
+    client.println("RCPT To: "+recpt);
+    lastTo = to.indexOf(';',lastTo) +1;
+  }
   if(!eRcv()) return 0;
  
   Serial.println(F("Sending DATA"));
@@ -60,8 +68,15 @@ byte RRMail::sendMail(String to, String subject, String body){
  
   Serial.println(F("Sending email"));
  
-// change to recipient address
-  client.println("To: "+to);
+ //Split Receipeints by ';'
+  lastTo=0;
+  while(to.indexOf(';',lastTo) != -1){
+    Serial.print(F("Sending Header To: "));
+    recpt=to.substring(lastTo,to.indexOf(';',lastTo));
+    Serial.println(recpt);
+    client.println("To: "+recpt);
+    lastTo = to.indexOf(';',lastTo) +1;
+  }
  
 // change to your address
   client.println("From: ESP8266 r.raekow@gmail.com");

@@ -1,4 +1,4 @@
-;
+
 #include "rrapsettings.h"
 
 RRApSettings::RRApSettings() {
@@ -12,7 +12,7 @@ RRApSettings::~RRApSettings() {
 
 
 void RRApSettings::save() {
-  EEPROM.begin(512);
+  EEPROM.begin(1024);
   EEPROM.put(RRAPSETTINGS_EEPROMSTART, settings);
   delay(200);
   EEPROM.commit();
@@ -20,7 +20,7 @@ void RRApSettings::save() {
 }
 
 void RRApSettings::restore() {
-  EEPROM.begin(512);
+  EEPROM.begin(1024);
   EEPROM.get(RRAPSETTINGS_EEPROMSTART, settings);
   EEPROM.end();
   //chek if we have valid settings here... Else clear them:
@@ -47,6 +47,21 @@ void RRApSettings::restore() {
   Serial.print(F("NTP/INTERVAL:"));
   Serial.print(settings.ntpEnable ? F("true (1) ") : F("false (0) "));
   Serial.println(settings.ntpInterval);
+  Serial.print("Telegramm: ");
+  Serial.println(settings.BotEnable? F("true (1) ") : F("false (0) "));
+  Serial.println(settings.BotToken);
+  Serial.println(settings.BotName);
+  Serial.println(settings.BotUsername);
+  Serial.println(settings.BotChatId);
+  Serial.print("Email: ");
+  Serial.println(settings.mailEnable? F("true (1) ") : F("false (0) "));
+  Serial.println(settings.mailReceiver);
+   Serial.print("Device: ");
+  Serial.println(settings.deviceName);
+  Serial.println(settings.deviceId);
+  Serial.println(settings.deviceFloor);
+  Serial.println(settings.deviceRoom);
+  
 }
 
 String RRApSettings::wifiList() {
