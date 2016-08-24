@@ -18,25 +18,42 @@
 #include "rrtime.h"
 #include "rrapsettings.h"
 
-unsigned int cnt=0;
+#include "statistic.h"
+
+#include "WemosRelay.h"
+
+unsigned int PulseCnt=0;
 unsigned int buffer[100]; //Buffer for the last 100 cnt s
 ESP8266WebServer server(80);
 RRTime rrtime;
 RRApSettings rrsettings;
+Statistic<unsigned int,60> PulsePerHour; //last hour
+Statistic<unsigned int,24> PulsePerDay; //last day
 const int led = 1;
+
+WemosRelay relay;
 
 
 // Initialize Telegram BOT
 TelegramBOT* bot;
 
 void pinChanged(){
-  cnt++;
+  PulseCnt++;
   //digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));  
 }
 
+//To read Powersupply voltage:
+ADC_MODE(ADC_VCC);
+  
 void setup() {
   Serial.begin(115200);
   delay(10);
+  Serial.print("VCC:");Serial.println(ESP.getVcc());
+
+
+  relay.set();
+  delay(500);
+  relay.un
   //pinMode(BUILTIN_LED, INPUT); 
   //pinMode(BUILTIN_LED, OUTPUT); 
   
@@ -90,13 +107,15 @@ void setup() {
     setSyncProvider(rrtime.getTime);
     if(rrsettings.settings.ntpInterval<1){rrsettings.settings.ntpInterval = 1;} //not smaler than 1h
     setSyncInterval((rrsettings.settings.ntpInterval)*3600); //interval is given in h
-    Serial.println("NTP Setup succeed: Every "+String(rrsettings.settings.ntpInterval) +" h");
+    Serial.println("NTP Setup: Every "+String(rrsettings.settings.ntpInterval) +" h");
   }
   Serial.println("Checking NTP Service ended");
     server.on("/", handleRoot );
     server.on("/index", handleRoot );
     server.on("/wifi", setupWifi );
     server.on("/ntp", setupNtp );
+    server.on("/ntp/sync/",[]() { server.send (200, "text/html",htmlHeader()+"<h2>NTP Sync</h2><script> setTimeout(function(){;window.location.assign('../ntp');},15000);</script>"+htmlFooter(ESP.getFreeHeap())); 
+                                  rrtime.getTime(); });
     server.on("/email",setupEmail);
   server.on("/telegram", setupTelegram);
   server.on("/reboot", []() {
@@ -107,20 +126,32 @@ void setup() {
     }
     ESP.restart();
   });
-  server.on("/graph.svg", drawGraph);
+  server.on("/graph_hour.svg", drawGraphHour);
+  server.on("/graph_day.svg", drawGraphHour);
+  server.on("/hour.csv", []() {
+    server.send (200, "text/csv",PulsePerHour.toCsv());
+  });
+  server.on("/day.csv", []() {
+    server.send (200, "text/csv",PulsePerDay.toCsv());
+  });
+  server.on("/get/day/stat", []() {
+   char temp[60];
+    snprintf ( temp, 20,"{day_mean:%d,day_var:%d,day_stdDev:%d}",PulsePerDay.meanf(),PulsePerDay.variancef(),PulsePerDay.stdDevf());
+    server.send (200, "text/plain",temp);
+  });
   server.on("/get/count", []() {
     char temp[20];
-    snprintf ( temp, 20,"{count:%d}",cnt);
+    snprintf ( temp, 20,"{count:%d}",PulseCnt);
     server.send (200, "text/plain",temp);
   });
   server.on("/get/temperature", []() {
     char temp[20];
-    snprintf ( temp, 20,"{TDOD:temperature:%f}",cnt);
+    snprintf ( temp, 20,"{TDOD:temperature:%f}",PulseCnt);
     server.send (200, "text/plain",temp);
   });
   server.on("/get/humidity", []() {
     char temp[20];
-    snprintf ( temp, 20,"{TODO:humidity:%f}",cnt);
+    snprintf ( temp, 20,"{TODO:humidity:%f}",PulseCnt);
     server.send (200, "text/plain",temp);
   });
   server.onNotFound(handleNotFound);
@@ -133,8 +164,31 @@ RRMail mail;
 }
 
 int value = 0;
-
+unsigned long previousMillis = 0;
+unsigned long interval = 1000;
+byte lastLogMin=-1;
 void loop() {
+  unsigned int currentMillis =0;
+  if(currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED 
+    previousMillis = currentMillis;   
+
+   //TODO 
+   
+  }
+
+  if(second() == 0 && lastLogMin != minute()){
+    lastLogMin=minute();
+    
+    unsigned int PulseCntBuff =PulseCnt;
+    PulseCnt=0;
+    PulsePerHour.setData(PulseCntBuff,minute());
+    //if 24h have elapsed: reset the value from 24h ago
+    if(minute()==0){
+      PulsePerDay.resetData(hour());
+    }
+    PulsePerDay.sumData(PulseCntBuff,hour());
+  }
  /* ++value;
 
   Serial.print("connecting to ");
@@ -203,7 +257,6 @@ void handleRoot() {
       "<h1>Hallo ich bin <em>%s</em></h1>\
       <p>Uptime: %02d:%02d:%02d</p>\
       <p>Zeit: %s</p>\
-      <img src=\"/graph.svg\" />\
       <p>Firmware: %s  vom %s %s</p>\
       <p>Heap: %d</p>\
       <p>Flash size: %d</p>",
@@ -331,7 +384,8 @@ function rl(){location.reload();}\n\
 /////////////////////////////////////////////////////////////////////////////////////
 //
 /////////////////////////////////////////////////////////////////////////////////////
-void drawGraph() {
+void drawGraphHour() {
+  /*
   String out = "";
   char temp[100];
   out += "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"400\" height=\"150\">\n";
@@ -347,8 +401,28 @@ void drawGraph() {
     y = y2;
   }
   out += "</g>\n</svg>\n";
-
-  server.send ( 200, "image/svg+xml", out);
+  */
+  server.send ( 200, "image/svg+xml", PulsePerHour.toSVG(400,150));
+}
+void drawGraphDay() {
+  /*
+  String out = "";
+  char temp[100];
+  out += "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"400\" height=\"150\">\n";
+  out += "<rect width=\"400\" height=\"150\" fill=\"rgb(250, 230, 210)\" stroke-width=\"1\" stroke=\"rgb(0, 0, 0)\" />\n";
+  out += "<g stroke=\"black\">\n";
+  int y = rand() % 130;
+  for (int x = 10; x < 390; x+= 10) {
+    int y2 = rand() % 130;
+    sprintf(temp, "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke-width=\"1\" />\n", x, 140 - y, x + 10, 140 - y2);
+    out += temp;
+    sprintf(temp, "<text y=\"0\" x=\"%d\" >%d</text>\n", x, x);
+    out += temp;
+    y = y2;
+  }
+  out += "</g>\n</svg>\n";
+  */
+  server.send ( 200, "image/svg+xml", PulsePerDay.toSVG(400,150));
 }
 
 
@@ -387,7 +461,7 @@ void setupNtp() {
  "<p>Aktivieren sie diese Funktion um die Uhr immer auktuell zu halten (Benötigt eine Internetverbindung).</p>\
  <p>Aktuelle Zeit:"+rrtime.dateTimeString()+"</p>\
  <p>NTP Status:"+rrtime.getStatus()+"</p>\
- <p>Letzter Sync:"+h+"h "+m+"m "+s+"s</p>\
+ <p>Letzter Sync:"+h+"h "+m+"m "+s+"s  (<a href='/ntp/sync/'>Jetzt synchronisieren</a>)</p>\
  <p>Sync Interval:"+rrsettings.settings.ntpInterval+"h</p>\
  <form action='' method='post'>\n\
  <table>\
@@ -563,8 +637,8 @@ String htmlHeader(){
   <ul class='sonarmenu'>\
   <li><a href='../index'>&#8962; Home</a></li>\
   <li><a href='../wifi'>&#x2699; WLAN/Http</a></li>\
-  <li><a href='../email'>Email</a></li>\
-  <li><a href='../ntp'>NTP</a></li>\
+  <li><a href='../email'>&#9993;Email</a></li>\
+  <li><a href='../ntp'>&#9716;NTP</a></li>\
   <li><a href='../telegram'>Telegram</a></li>\
   <li><a href='../reboot'>Reboot</a></li>\
   </ul>\n\
@@ -574,7 +648,7 @@ String htmlHeader(){
 //
 /////////////////////////////////////////////////////////////////////////////////////
 String htmlFooter(long heap){
-  return String("<p><small>Heap: ")+heap+" </small></p>\
+  return String("<p><small>Heap: ")+heap+" Bytes | VCC:"+ESP.getVcc()+" mV</small></p>\
      </body>\
     </html>";
   }

@@ -56,7 +56,7 @@ void RRApSettings::restore() {
   Serial.print("Email: ");
   Serial.println(settings.mailEnable? F("true (1) ") : F("false (0) "));
   Serial.println(settings.mailReceiver);
-   Serial.print("Device: ");
+  Serial.print("Device: ");
   Serial.println(settings.deviceName);
   Serial.println(settings.deviceId);
   Serial.println(settings.deviceFloor);

@@ -64,7 +64,7 @@ time_t RRTime::getTime(){
   udp.endPacket();
   /////////////////////////////////////////////////////////////////////////
   uint32_t beginWait = millis();
-  while (millis() - beginWait < 1500) {
+  while (millis() - beginWait < 3000) {
     int size = udp.parsePacket();
     if (size >= NTP_PACKET_SIZE) {
       Serial.println("Receive NTP Response");
