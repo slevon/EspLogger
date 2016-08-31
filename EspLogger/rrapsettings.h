@@ -33,6 +33,10 @@ class RRApSettings{
       unsigned int deviceId;
       char deviceRoom[RRAPSETTINGS_SHORT_STRING];
       char deviceName[RRAPSETTINGS_SHORT_STRING];
+      //Relay
+      byte relayEnable;
+      char relayChangeUrl[RRAPSETTINGS_LONG_STRING];
+      
       }settings;
   
     RRApSettings();

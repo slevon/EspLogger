@@ -8,9 +8,6 @@ RRApSettings::~RRApSettings() {
 
 }
 
-
-
-
 void RRApSettings::save() {
   EEPROM.begin(1024);
   EEPROM.put(RRAPSETTINGS_EEPROMSTART, settings);
@@ -61,6 +58,9 @@ void RRApSettings::restore() {
   Serial.println(settings.deviceId);
   Serial.println(settings.deviceFloor);
   Serial.println(settings.deviceRoom);
+  Serial.print("Relay: ");
+  Serial.println(settings.relayEnable? F("true (1) ") : F("false (0) "));
+  Serial.println(settings.relayChangeUrl);
   
 }
 
@@ -76,6 +76,7 @@ String RRApSettings::wifiList() {
   } else {
     Serial.print(n);
     Serial.println(" networks found");
+    Wifis = F("<option value=''>Deaktiveren</option>");
     String signal = "";
     for (int i = 0; i < n; ++i)
     {
