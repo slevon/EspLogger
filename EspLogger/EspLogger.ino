@@ -15,7 +15,7 @@
 //Telegram
 #include <WiFiClientSecure.h>
 #include <TelegramBot.h>
-#include <FS.h>
+
 #include <ESP8266mDNS.h>
 
 #include "webpages.h"
@@ -29,6 +29,8 @@
 
 #include "WemosRelay.h"
 
+#include "rrfs.h"
+
 unsigned int PulseCnt=0;
 unsigned int buffer[100]; //Buffer for the last 100 cnt s
 ESP8266WebServer server(80);
@@ -39,6 +41,9 @@ Statistic<unsigned int,24> PulsePerDay; //last day
 const int led = 1;
 
 WemosRelay relay;
+
+
+RRFs rrfs(&server);
 
 void pinChanged(){
   PulseCnt++;
@@ -119,6 +124,8 @@ void setup() {
     Serial.println("Filesystem failed");  
   }
 
+
+
   
   //Attach a GPIO Interrrupt
    attachInterrupt(2, pinChanged, RISING);
@@ -140,8 +147,8 @@ void setup() {
     server.on("/ntp/sync/",[]() { server.send (200, "text/html",htmlHeader()+"<h2>NTP Sync</h2><script> setTimeout(function(){;window.location.assign('../ntp');},15000);</script>"+htmlFooter(ESP.getFreeHeap())); 
                                   rrtime.getTime(); });
     server.on("/email",setupEmail);
-  server.on("/telegram", setupTelegram);
-  server.on("/reboot", []() {
+    server.on("/telegram", setupTelegram);
+    server.on("/reboot", []() {
     if(millis()>60000){
       server.send (200, "text/html",htmlHeader()+"<h2>Ich starte neu. Bitte warten.</h2><script> setTimeout(function(){;window.location.assign('../index');},15000);</script>"+htmlFooter(ESP.getFreeHeap()));
     }else{
