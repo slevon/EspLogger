@@ -11,7 +11,8 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
-#include <EEPROM.h>
+#include <ArduinoJson.h>
+#include "FS.h"
 //Telegram
 #include <WiFiClientSecure.h>
 #include <TelegramBot.h>
@@ -23,7 +24,7 @@
 #include "rrmail.h"
 
 #include "rrtime.h"
-#include "rrapsettings.h"
+#include "rrsettings.h"
 
 #include "statistic.h"
 
@@ -35,7 +36,7 @@ unsigned int PulseCnt=0;
 unsigned int buffer[100]; //Buffer for the last 100 cnt s
 ESP8266WebServer server(80);
 RRTime rrtime;
-RRApSettings rrsettings;
+RRSettings rrsettings;
 Statistic<unsigned int,60> PulsePerHour; //last hour
 Statistic<unsigned int,24> PulsePerDay; //last day
 const int led = 1;
@@ -65,17 +66,18 @@ void setup() {
   //pinMode(BUILTIN_LED, INPUT); 
   //pinMode(BUILTIN_LED, OUTPUT); 
   
-  rrsettings.restore();  //Get the settings;
-
-  relay.setUrl(rrsettings.settings.relayChangeUrl);
+  rrsettings.load("relay");  //Get the settings;
+  const char* c= String(rrsettings.data["relayChangeUrl"].asString()).c_str();
+  relay.setUrl(c);
   
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(rrsettings.settings.ssid);
+  rrsettings.load("wifi");  //Get the settings;
+  Serial.println(rrsettings.data["ssid"].asString());
 
   WiFi.mode(WIFI_STA); //default: join the WIFI
-  WiFi.begin(rrsettings.settings.ssid, rrsettings.settings.pass);
+  WiFi.begin(rrsettings.data["ssid"].asString(), rrsettings.data["pass"].asString());
   
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -97,7 +99,8 @@ void setup() {
     Serial.println("WiFi connected");  
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
-    String host=String(rrsettings.settings.deviceRoom)+"."+rrsettings.settings.deviceName;
+    rrsettings.load("device");
+    String host=rrsettings.data["deviceRoom"].asString()+String(".")+rrsettings.data["deviceName"].asString();
     if (!MDNS.begin(host.c_str())) {
       Serial.println("Error setting up MDNS responder!");
     }
@@ -130,27 +133,21 @@ void setup() {
    //enalbe Periodic sync to NTP:
   //Setup ntp sync
   Serial.println("Checking NTP Service");
-  if(rrsettings.settings.ntpEnable){
+  rrsettings.load("ntp");
+  if(rrsettings.data["ntpEnable"]){
     setSyncProvider(rrtime.getTime);
-    if(rrsettings.settings.ntpInterval<1){rrsettings.settings.ntpInterval = 1;} //not smaler than 1h
-    setSyncInterval((rrsettings.settings.ntpInterval)*3600); //interval is given in h
-    Serial.println("NTP Setup: Every "+String(rrsettings.settings.ntpInterval) +" h");
+    if(rrsettings.data["ntpInterval"]<1){rrsettings.data["ntpInterval"] = 1;} //not smaler than 1h
+    setSyncInterval((rrsettings.data["ntpInterval"].as<long>())*3600); //interval is given in h
+    Serial.println(String("NTP Setup: Every ")+rrsettings.data["ntpInterval"].asString() +" h");
   }
   Serial.println("Checking NTP Service ended");
     server.on("/", handleRoot );
     server.on("/index", handleRoot );
-    server.on("/wifi", setupWifi );
-    server.on("/relay",setupRelay);
-    server.on("/ntp/sync/",[]() { server.send (200, "text/html",htmlHeader()+"<h2>NTP Sync</h2><script> setTimeout(function(){;window.location.assign('../ntp');},15000);</script>"+htmlFooter(ESP.getFreeHeap())); 
+    server.on("/setup", handleSetup );
+    server.on("/ntp/sync/",[]() { server.send (200, "application/json", "{\"sync\":\"true\"}"); 
                                   rrtime.getTime(); });
-    server.on("/email",setupEmail);
-    server.on("/telegram", setupTelegram);
     server.on("/reboot", []() {
-    if(millis()>60000){
-      server.send (200, "text/html",htmlHeader()+"<h2>Ich starte neu. Bitte warten.</h2><script> setTimeout(function(){;window.location.assign('../index');},15000);</script>"+htmlFooter(ESP.getFreeHeap()));
-    }else{
-      server.send (200, "text/html",htmlHeader()+"<h2>Reboot abgebrochen. ESP uptime weniger als eine Minute. Bitte besuche die <a href='../index'>Indexseite</a></h2>"+htmlFooter(ESP.getFreeHeap()));
-    }
+    server.send( 200, "application/json", "{\"rebooting\":\"true\"}" );
     ESP.restart();
   });
   server.on("/graph_hour.svg", drawGraphHour);

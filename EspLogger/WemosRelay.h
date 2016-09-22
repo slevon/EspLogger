@@ -21,7 +21,7 @@ class WemosRelay{
       digitalWrite(relayPin, LOW);
       };
     ~WemosRelay(){};
-    void setUrl(char * url){
+    void setUrl(const char * url){
       snprintf( relayChangeUrl,sizeof(relayChangeUrl),"%s",url);
      }
     
