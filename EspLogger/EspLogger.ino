@@ -124,9 +124,6 @@ void setup() {
     Serial.println("Filesystem failed");  
   }
 
-
-
-  
   //Attach a GPIO Interrrupt
    attachInterrupt(2, pinChanged, RISING);
 
@@ -201,7 +198,7 @@ void setup() {
     snprintf ( tmp, 20,"{relay:%d}",relay.state());
     server.send (200, "text/plain",tmp);
   });
-  server.onNotFound(handleNotFound);
+  //NOW DONE IN RRFS-Class server.onNotFound(handleNotFound);
   server.begin();
 /*
 RRMail mail;
@@ -242,7 +239,7 @@ void loop() {
   
   
   //TODODO   relay.run();
-  yield();
+  //yield();
 }
 
 

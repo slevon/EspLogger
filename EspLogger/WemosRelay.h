@@ -69,7 +69,6 @@ class WemosRelay{
     
    }
     
-
   private:
     void sendState(){
       

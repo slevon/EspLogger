@@ -41,6 +41,16 @@ RRFs::RRFs(ESP8266WebServer* webserver){
     this->server->send(200, "text/json", json);
     json = String();
   });
+
+
+  
+  //called when the url is not defined here
+  //use it to load content from SPIFFS
+  server->onNotFound([&](){
+    if(!handleFileRead(server->uri()))
+      this->server->send(404, "text/plain", "FileNotFound");
+  });
+
   
   }
 
@@ -82,8 +92,8 @@ String RRFs::getContentType(String filename){
 }
 
 bool RRFs::handleFileRead(String path){
-  Serial.println("handleFileRead: " + path);
-  if(path.endsWith("/")) path += "index.htm";
+  Serial.print("handleFileRead: " + path);
+  if(path.endsWith("/")) path += "index.html";
   String contentType = getContentType(path);
   String pathWithGz = path + ".gz";
   if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){
@@ -92,6 +102,7 @@ bool RRFs::handleFileRead(String path){
     File file = SPIFFS.open(path, "r");
     size_t sent = server->streamFile(file, contentType);
     file.close();
+    Serial.println("...ok");
     return true;
   }
   return false;
