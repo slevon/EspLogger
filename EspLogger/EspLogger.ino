@@ -48,7 +48,6 @@ RRFs rrfs(&server);
 
 void pinChanged(){
   PulseCnt++;
-  //digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));  
 }
 
 //To read Powersupply voltage:
@@ -67,17 +66,18 @@ void setup() {
   //pinMode(BUILTIN_LED, OUTPUT); 
   
   rrsettings.load("relay");  //Get the settings;
-  const char* c= String(rrsettings.data["relayChangeUrl"].asString()).c_str();
+  const char* c= rrsettings.get("relayChangeUrl").c_str();
+  Serial.println("1");
   relay.setUrl(c);
   
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
   rrsettings.load("wifi");  //Get the settings;
-  Serial.println(rrsettings.data["ssid"].asString());
+  Serial.println(rrsettings.get("ssid"));
 
   WiFi.mode(WIFI_STA); //default: join the WIFI
-  WiFi.begin(rrsettings.data["ssid"].asString(), rrsettings.data["pass"].asString());
+  WiFi.begin(rrsettings.get("ssid").c_str(), rrsettings.get("pass").c_str());
   
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -100,7 +100,7 @@ void setup() {
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
     rrsettings.load("device");
-    String host=rrsettings.data["deviceRoom"].asString()+String(".")+rrsettings.data["deviceName"].asString();
+    String host=rrsettings.get("deviceRoom")+String(".")+rrsettings.get("deviceName");
     if (!MDNS.begin(host.c_str())) {
       Serial.println("Error setting up MDNS responder!");
     }
@@ -134,21 +134,24 @@ void setup() {
   //Setup ntp sync
   Serial.println("Checking NTP Service");
   rrsettings.load("ntp");
-  if(rrsettings.data["ntpEnable"]){
+  if(rrsettings.getBool("ntpEnable")){
     setSyncProvider(rrtime.getTime);
-    if(rrsettings.data["ntpInterval"]<1){rrsettings.data["ntpInterval"] = 1;} //not smaler than 1h
-    setSyncInterval((rrsettings.data["ntpInterval"].as<long>())*3600); //interval is given in h
-    Serial.println(String("NTP Setup: Every ")+rrsettings.data["ntpInterval"].asString() +" h");
+    if(rrsettings.getLong("ntpInterval")<1){rrsettings.set("ntpInterval",1);} //not smaler than 1h
+    setSyncInterval((rrsettings.getLong("ntpInterval"))*3600); //interval is given in h
+    Serial.println(String("NTP Setup: Every ")+rrsettings.get("ntpInterval") +" h");
   }
   Serial.println("Checking NTP Service ended");
     server.on("/", handleRoot );
-    server.on("/index", handleRoot );
-    server.on("/setup", handleSetup );
+    server.on("/index/", handleRoot );
+    server.on("/setup/", handleSetup );
     server.on("/ntp/sync/",[]() { server.send (200, "application/json", "{\"sync\":\"true\"}"); 
                                   rrtime.getTime(); });
     server.on("/reboot", []() {
     server.send( 200, "application/json", "{\"rebooting\":\"true\"}" );
     ESP.restart();
+  });
+  server.on("/get/wifilist/", []() {
+    server.send (200, "text/html",rrsettings.wifiList());
   });
   server.on("/graph_hour.svg", drawGraphHour);
   server.on("/graph_day.svg", drawGraphHour);
@@ -233,8 +236,6 @@ void loop() {
 
   
   server.handleClient();
-  
-  
   //TODODO   relay.run();
   //yield();
 }

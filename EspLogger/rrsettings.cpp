@@ -2,6 +2,7 @@
 #include "rrsettings.h"
 
 RRSettings::RRSettings() {
+  configLoaded=false;
 }
 
 RRSettings::~RRSettings() {
@@ -9,29 +10,35 @@ RRSettings::~RRSettings() {
 }
 
 bool RRSettings::save() {
-  configFile = SPIFFS.open(currentFilename, "w");
+  File configFile = SPIFFS.open(currentFilename, "w");
   if (!configFile) {
     Serial.println("Failed to open config file for writing");
      configFile.close();
     return false;
   }
 
-  data.printTo(configFile);
+  data->printTo(configFile);
   configFile.close();
   return true;
 }
 
 bool RRSettings::saveServerArgs(ESP8266WebServer& server){
-  
+
+  if(!configLoaded){
+    //create new object
+    data=&jsonBuffer.parseObject("{}");
+    }
    for ( uint8_t i = 0; i < server.args(); i++ ) {
       Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
-        rrsettings.data[server.argName (i)]=RRApSettings::urldecode(server.arg(i)).c_str());
+      Serial.println();
+        (*data)[server.argName(i)]=RRSettings::urldecode(server.arg(i).c_str());
       
       }
-    return rrsettings.save();
+    return save();
 }
 
 bool  RRSettings::load(String name) {
+  configLoaded=false;
   currentFilename = String("/config/")+name+".json";
   File configFile = SPIFFS.open(currentFilename, "r");
   
@@ -56,21 +63,21 @@ bool  RRSettings::load(String name) {
   // use configFile.readString instead.
   configFile.readBytes(buf.get(), size);
   
-  StaticJsonBuffer<200> jsonBuffer;
-  data = jsonBuffer.parseObject(buf.get());
+  data = &jsonBuffer.parseObject(buf.get());
   
-  if (!data.success()) {
+  if (!data->success()) {
     Serial.println("Failed to parse config file");
     return false;
   }
   
   Serial.println("Loaded Config: "+name);
-  for(JsonObject::iterator it=data.begin(); it!=data.end()++it){
+  for(JsonObject::iterator it=data->begin(); it!=data->end();++it){
     Serial.print(it->key);
     Serial.print(": ");
-    Serial.print(it->value);
+    Serial.print(it->value.asString());
     }
   configFile.close();
+  configLoaded=true;
   return true;
   
 }
@@ -90,7 +97,7 @@ String RRSettings::wifiList() {
     Wifis = F("<option value=''>Deaktiveren</option>");
     String signal = "";
      load("wifi");
-     String currentWifi=data["ssid"].asString();
+     String currentWifi=(*data)["ssid"];
     for (int i = 0; i < n; ++i)
     {
       // Print SSID and RSSI for each network found

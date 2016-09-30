@@ -8,7 +8,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="">
         <meta name="author" content="">
-        <title>RRDev</title>
+        <title id="pageTitle"> RRDev </title>
 
          
         <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -22,57 +22,14 @@
        
         <link href="css/style.css" rel="stylesheet">
 
-       
-        <link href='http://fonts.googleapis.com/css?family=Lobster' rel='stylesheet' type='text/css'>
-
-
-		
-        <link href="css/chartist.css" rel="stylesheet"> -->
-        
-        <script>
-			/*
-		function loadCSSSync (src) {
-			var s = document.createElement('link');
-			s.href = src;
-			s.rel = "stylesheet";
-			s.async = false;                                 // <-- this is important
-			document.getElementsByTagName('head')[0].appendChild(s);
-		}
-        function loadScriptSync (src) {
-			var s = document.createElement('script');
-			s.src = src;
-			s.type = "text/javascript";
-			s.async = false;                                 // <-- this is important
-			document.getElementsByTagName('head')[0].appendChild(s);
-		}
-		
-		loadCSSSync("bootstrap/css/bootstrap.min.css");
-		loadCSSSync("css/font-awesome.min.css");
-		loadCSSSync("css/style.css");
-		loadCSSSync("css/animate.css");
-		loadCSSSync("css/chartist.css");
-		
-		
-		loadScriptSync("js/chartist.min.js");
-		loadScriptSync("js/jquery-2.1.1.min.js");
-		loadScriptSync("bootstrap/js/bootstrap.min.js");
-		loadScriptSync("js/jqBootstrapValidation.js");
-		loadScriptSync("js/modernizr.custom.js");
-		loadScriptSync("js/script.js");*/
-		</script>
-		
-		
+        <link href="css/chartist.css" rel="stylesheet"> 
 		<script src="js/chartist.min.js"></script>
         <script src="js/jquery-2.1.1.min.js"></script>
         <script src="bootstrap/js/bootstrap.min.js"></script>
         <script src="js/jquery.appear.js"></script>
-        <script src="js/contact_me.js"></script>
         <script src="js/jqBootstrapValidation.js"></script>
         <script src="js/modernizr.custom.js"></script>
         <script src="js/script.js"></script> 
-        
- 
-
         <!--[if lt IE 9]>
             <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
             <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
@@ -269,16 +226,16 @@
                     </div>
 					
                     <div class="row">
-					<form class="">
                         <div class="col-md-4 col-sm-6 col-xs-12">
+							<form id="setupWifiForm" >
                             <div class="feature">
-                                <i class="fa fa-wifi"></i>
+                               <i class="fa fa-wifi"></i>
                                 <div class="feature-content">
                                     <h4>Wifi-Setup</h4>
                                     <p>Setup the connection to your router</p>
 									<div class="form-group ">
 									<label>SSID / Name</label>
-                                            <select class="form-control" required data-validation-required-message="Please choose a Wifi.">
+                                            <select name ="ssid"  class="form-control" required data-validation-required-message="Please choose a Wifi.">
 											<option >Please select...</option>
 											<option>one</option>
 											<option>two</option>
@@ -288,12 +245,35 @@
                                      </div>
 									 <div class="form-group">
 									    <label>Password</label>
-                                        <input   class="form-control" type="password" placeholder="password" />
+                                        <input  name="pass" class="form-control" type="password" placeholder="password" />
                                         <p class="help-block text-danger"></p>
-										
                                      </div>
+                                     <button type="submit" class="btn-block btn btn-lg btn-primary">Save Settings</button>
                                 </div>
                             </div>
+                            </form>
+                            <script>
+                            $('#setupWifiForm').submit(function(){
+								var form=$(this);
+								var classes=form.find(".fa").prop('class');
+								form.find('.form-control').prop('disabled',true);
+								form.find(".fa").removeClass(classes).addClass('fa fa-cog fa-spin');
+								$.ajax({url:"setup/",
+									data:form.serialize()+"&rresction=wifi",
+									})
+									.success(function(data){
+											console.log(data);
+											form.find(".fa").removeClass('fa fa-cog fa-spin').addClass(classes);
+										})
+									.error(function(){
+										console.log("Error");
+										})
+									.done(function(){
+										form.find('.form-control').prop('disabled',false);		
+											});
+								return false;
+								});
+                            </script>
                         </div><!-- /.col-md-4 -->
                         <div class="col-md-4 col-sm-6 col-xs-12">
                             <div class="feature">
@@ -359,12 +339,6 @@
                         </div><!-- /.col-md-4 -->
 					</form>
                     </div><!-- /.row -->
-					  <div class="clearfix"></div>
-						<div class="col-lg-offset-1 col-lg-10 " style="z-index:10001; position:fixed; bottom: 10px;left:0px;">
-							<div id="success"></div>
-							<button type="submit" class="btn-block btn btn-lg btn-primary">Save Settings</button>
-						</div>
-
                 </div>
                 
             </div>

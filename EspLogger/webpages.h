@@ -17,15 +17,14 @@ void handleRoot() {
   int hr = min / 60;
 
   rrsettings.load("device");
-
   snprintf ( temp, 400,
-      "{\"name\":%s,\
-      \"uptime\": %02d:%02d:%02d,\
-      \"time\": %s,\
-      \"firmware\": %s %s %s,\
-      \"heap\": %d,\
+      "{\"name\":\"%s\",\
+      \"uptime\":\"%02d:%02d:%02d\",\
+      \"time\": \"%s\",\
+      \"firmware\":\"%s %s %s\",\
+      \"heap\":\"%d\",\
       \"flash-size\": %d",
-    rrsettings.data["deviceName"],
+    rrsettings.get("deviceName").c_str(),
     hr, min % 60, sec % 60,rrtime.dateTimeString().c_str(),VERSION ,__DATE__,__TIME__,ESP.getFreeHeap(),ESP.getFlashChipSize()
   );
   server.send ( 200, "text/html", temp );
@@ -66,7 +65,7 @@ void handleSetup() {
     }
   }
   rrsettings.load(server.arg("rrsection"));
-  rrsettings.data["saved"]=saved;
+  rrsettings.set("saved",JsonVariant(saved));
   server.send( 200, "application/json", rrsettings.toJson() );
 }
 
