@@ -1,6 +1,6 @@
 <?php
 
-sleep(2);
+sleep(3);
 $data=array();
 foreach($_REQUEST as $key=>$val){
 	$data[$key]=$val;

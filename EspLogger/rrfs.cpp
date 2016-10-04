@@ -4,13 +4,13 @@
 RRFs::RRFs(ESP8266WebServer* webserver){
 
 
-  Serial.println("Setting up RRFs");
+  DEBUGPRINT.println("Setting up RRFs");
   server=webserver;
 
   if(SPIFFS.begin()){
-    Serial.println("Filesystem started");
+    DEBUGPRINT.println("Filesystem started");
   }else{
-    Serial.println("Filesystem failed");  
+    DEBUGPRINT.println("Filesystem failed");  
   }
 
 
@@ -29,20 +29,6 @@ RRFs::RRFs(ESP8266WebServer* webserver){
   //first callback is called after the request has ended with all parsed arguments
   //second callback handles file uploads at that location
   server->on("/fs/edit", HTTP_POST, [&](){ server->send(200, "text/plain", ""); },std::bind(&RRFs::handleFileUpload,this));
-
-
-  //get heap status, analog input value and all GPIO statuses in one json call
-  server->on("/fs/all", HTTP_GET, [&](){
-    String json = "{";
-    json += "\"heap\":"+String(ESP.getFreeHeap());
-    json += ", \"analog\":"+String(analogRead(A0));
-    json += ", \"gpio\":"+String((uint32_t)(((GPI | GPO) & 0xFFFF) | ((GP16I & 0x01) << 16)));
-    json += "}";
-    this->server->send(200, "text/json", json);
-    json = String();
-  });
-
-
   
   //called when the url is not defined here
   //use it to load content from SPIFFS
@@ -92,7 +78,7 @@ String RRFs::getContentType(String filename){
 }
 
 bool RRFs::handleFileRead(String path){
-  Serial.print("handleFileRead: " + path);
+  DEBUGPRINT.print("handleFileRead: " + path);
   if(path.endsWith("/")) path += "index.html";
   String contentType = getContentType(path);
   String pathWithGz = path + ".gz";
@@ -102,7 +88,7 @@ bool RRFs::handleFileRead(String path){
     File file = SPIFFS.open(path, "r");
     size_t sent = server->streamFile(file, contentType);
     file.close();
-    Serial.println("...ok");
+    
     return true;
   }
   return false;
@@ -115,24 +101,24 @@ void RRFs::handleFileUpload(){
   if(upload.status == UPLOAD_FILE_START){
     String filename = upload.filename;
     if(!filename.startsWith("/")) filename = "/"+filename;
-    Serial.print("handleFileUpload Name: "); Serial.println(filename);
+    DEBUGPRINT.print("handleFileUpload Name: "); DEBUGPRINT.println(filename);
     fsUploadFile = SPIFFS.open(filename, "w");
     filename = String();
   } else if(upload.status == UPLOAD_FILE_WRITE){
-    //Serial.print("handleFileUpload Data: "); Serial.println(upload.currentSize);
+    //DEBUGPRINT.print("handleFileUpload Data: "); DEBUGPRINT.println(upload.currentSize);
     if(fsUploadFile)
       fsUploadFile.write(upload.buf, upload.currentSize);
   } else if(upload.status == UPLOAD_FILE_END){
     if(fsUploadFile)
       fsUploadFile.close();
-    Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
+    DEBUGPRINT.print("handleFileUpload Size: "); DEBUGPRINT.println(upload.totalSize);
   }
 }
 
 void RRFs::handleFileDelete(){
   if(server->args() == 0) return server->send(500, "text/plain", "BAD ARGS");
   String path = server->arg(0);
-  Serial.println("handleFileDelete: " + path);
+  DEBUGPRINT.println("handleFileDelete: " + path);
   if(path == "/")
     return server->send(500, "text/plain", "BAD PATH");
   if(!SPIFFS.exists(path))
@@ -146,7 +132,7 @@ void RRFs::handleFileCreate(){
   if(server->args() == 0)
     return server->send(500, "text/plain", "BAD ARGS");
   String path = server->arg(0);
-  Serial.println("handleFileCreate: " + path);
+  DEBUGPRINT.println("handleFileCreate: " + path);
   if(path == "/")
     return server->send(500, "text/plain", "BAD PATH");
   if(SPIFFS.exists(path))
@@ -164,7 +150,7 @@ void RRFs::handleFileList() {
   if(!server->hasArg("dir")) {server->send(500, "text/plain", "BAD ARGS"); return;}
   
   String path = server->arg("dir");
-  Serial.println("handleFileList: " + path);
+  DEBUGPRINT.println("handleFileList: " + path);
   Dir dir = SPIFFS.openDir(path);
   path = String();
 

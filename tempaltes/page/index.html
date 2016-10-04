@@ -9,19 +9,10 @@
         <meta name="description" content="">
         <meta name="author" content="">
         <title id="pageTitle"> RRDev </title>
-
-         
         <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-
-     
         <link href="css/font-awesome.min.css" rel="stylesheet">
-		
-		
         <link href="css/animate.css" rel="stylesheet">
-
-       
         <link href="css/style.css" rel="stylesheet">
-
         <link href="css/chartist.css" rel="stylesheet"> 
 		<script src="js/chartist.min.js"></script>
         <script src="js/jquery-2.1.1.min.js"></script>
@@ -30,6 +21,80 @@
         <script src="js/jqBootstrapValidation.js"></script>
         <script src="js/modernizr.custom.js"></script>
         <script src="js/script.js"></script> 
+        <script src="js/ajaxq.js"></script> 
+        <script>
+			function getByName(name){
+					console.log("By Name",$("[name='"+name+"']"));
+					return $("[name='"+name+"']");
+				}
+				
+				
+				$(function(){
+					$('[data-toggle="tooltip"]').tooltip();
+					
+					});
+        </script> 
+        
+         <script>
+								
+							$(function(){
+								setTimeout(function(){
+										$.get("get/wifilist",function(data){
+											getByName("ssid").html(data);
+										}).always(function(){
+											$.getJSON("/fs/list",function(data){
+													$(data).each(function(idx,el){
+															//get basename
+															var base=el['name'].substring(el['name'].lastIndexOf('/') +1).replace('.json','');
+															//base
+															$.getq("config",el['name'].replace('json','php'),function(data){
+																data=$.parseJSON(data);
+																console.log(data);
+																var form = $('[data-rrsection="'+data['rrsection']+'"]');
+																$.each(data,function(key,value){
+																		console.log(key);
+																		form.find('[name="'+key+'"]').val(value);
+																	});
+																
+																
+																
+																});
+															console.log(el,base);
+														
+														});
+												});//end device
+										
+									   });//end wifilist
+										
+									},300);
+									
+									
+							 $('.setupForm').submit(function(){
+								var form=$(this);
+								//save data befor disable otherwise no date ist returen from serialze()
+								var ajaxData=form.serialize()+"&rrsection="+form.data('rrsection');
+								form.find('.form-control').prop('disabled',true);
+								form.find(".fa").addClass("fa-spin");
+								$.ajax({url:"setup/",
+									    data:ajaxData,
+									 })
+									.success(function(data){
+											console.log(data);
+											//form.find(".fa").removeClass('fa fa-cog fa-spin').addClass(classes);
+											
+										})
+									.error(function(){
+										console.log("Error");
+										})
+									.done(function(){
+										 form.find('.form-control').prop('disabled',false);	
+										 form.find(".fa").removeClass("fa-spin");	
+											});
+								return false;
+								});		
+							});	//end DOM-ready
+                           
+                            </script>
         <!--[if lt IE 9]>
             <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
             <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
@@ -62,27 +127,19 @@
                     
                     <div class="col-md-3">
                         
-                        <div class="menu-item blue">
+                        <div class="menu-item blue" data-toggle="tooltip" title="WIFI and Device Setup">
                             <a href="#settings-modal" data-toggle="modal">
                                 <i class="fa fa-cogs"></i>
                                 <p>Setup</p>
                             </a>
                         </div>
                         
-                        <div class="menu-item green">
+                        <div class="menu-item green" data-toggle="tooltip" title="Email, Telegram, HTTP and Blynk">
                             <a href="#portfolio-modal" data-toggle="modal">
-                                <i class="fa fa-lightbulb-o"></i>
-                                <p>Relais</p>
+                                <i class="fa fa-comments-o"></i>
+                                <p>Communication</p>
                             </a>
                         </div>
-                        
-                        <div class="menu-item light-red">
-                            <a href="#about-modal" data-toggle="modal">
-                                <i class="fa fa-envelope"></i>
-                                <p>Email</p>
-                            </a>
-                        </div> 
-                        
                     </div>
                     
                     <div class="col-md-6">
@@ -140,28 +197,6 @@
                         </div>
                         <!-- End Carousel Section -->
                         
-                      <div class="row">
-                            <div class="col-md-6">
-                                <div class="menu-item color responsive">
-                                    <a href="#service-modal" data-toggle="modal">
-                                        <i class="fa fa-area-chart"></i>
-                                        <p>Graphen</p>
-                                    </a>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="menu-item light-orange responsive-2">
-                                    <a href="#team-modal" data-toggle="modal">
-                                        <i class="fa fa-code-fork"></i>
-                                        <p>RR-Server</p>
-                                    </a>
-                                </div>
-                            </div>
-                            
-                        </div>
-					
-                        
                     </div>
                     
                     <div class="col-md-3">
@@ -179,14 +214,7 @@
                                         <i class="fa fa-code-fork"></i>
                                         <p>RR-Server</p>
                                     </a>
-                        </div>
-                        
-                         <div class="menu-item blue">
-                            <a href="#news-modal" data-toggle="modal">
-                                <i class="fa fa-mortar-board"></i>
-                                <p>Latest News</p>
-                            </a>
-                        </div>                         
+                        </div>                  
                     </div>
                 </div>
             </div>
@@ -208,7 +236,7 @@
         <!-- End Copyright Section -->
         
         
-        <!-- Start Feature Section -->
+        <!-- Start Setup Section -->
         <div class="section-modal modal fade" id="settings-modal" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-content">
                 <div class="close-modal" data-dismiss="modal">
@@ -227,19 +255,16 @@
 					
                     <div class="row">
                         <div class="col-md-4 col-sm-6 col-xs-12">
-							<form id="setupWifiForm" >
+							<form class="setupForm" data-rrsection="wifi" >
                             <div class="feature">
-                               <i class="fa fa-wifi"></i>
+                               <i class="fa fa-wifi blue"></i>
                                 <div class="feature-content">
                                     <h4>Wifi-Setup</h4>
                                     <p>Setup the connection to your router</p>
 									<div class="form-group ">
 									<label>SSID / Name</label>
                                             <select name ="ssid"  class="form-control" required data-validation-required-message="Please choose a Wifi.">
-											<option >Please select...</option>
-											<option>one</option>
-											<option>two</option>
-											<option>three</option>
+											<option disabled >loading...</option>
 											</select>
                                             <p class="help-block text-danger"></p>
                                      </div>
@@ -248,102 +273,98 @@
                                         <input  name="pass" class="form-control" type="password" placeholder="password" />
                                         <p class="help-block text-danger"></p>
                                      </div>
-                                     <button type="submit" class="btn-block btn btn-lg btn-primary">Save Settings</button>
+                                     <button type="submit" class="btn-block btn btn-lg btn-primary">Save</button>
                                 </div>
                             </div>
                             </form>
-                            <script>
-                            $('#setupWifiForm').submit(function(){
-								var form=$(this);
-								var classes=form.find(".fa").prop('class');
-								form.find('.form-control').prop('disabled',true);
-								form.find(".fa").removeClass(classes).addClass('fa fa-cog fa-spin');
-								$.ajax({url:"setup/",
-									data:form.serialize()+"&rresction=wifi",
-									})
-									.success(function(data){
-											console.log(data);
-											form.find(".fa").removeClass('fa fa-cog fa-spin').addClass(classes);
-										})
-									.error(function(){
-										console.log("Error");
-										})
-									.done(function(){
-										form.find('.form-control').prop('disabled',false);		
-											});
-								return false;
-								});
-                            </script>
+                           
                         </div><!-- /.col-md-4 -->
                         <div class="col-md-4 col-sm-6 col-xs-12">
+                            <form class="setupForm" data-rrsection="device">
                             <div class="feature">
-                                <i class="fa fa-home"></i>
+                                <i class="fa fa-home blue"></i>
                                 <div class="feature-content">
                                     <h4>Location</h4>
-                                    <p>Define device location</p>
+                                    <p>Define device location.
+                                     <a class="fa fa-info-circle" data-toggle="tooltip" title="If you set floor and name, you can reach your device under http://floor.name.local" ></a>
+                                      </p>
 									  <div class="form-group ">
 									  <label>Id</label>
-									  <input type="text" type="text" data-validation="number" class="form-control" placeholder="e.g. 123" />
+									  <input name="id" type="text" type="text" data-validation="number" class="form-control" placeholder="e.g. 123" />
 									   <p class="help-block text-danger"></p>
 									  </div>
 									  <div class="form-group ">
 									  <label>Floor</label>
-									  <input type="text" type="text" data-validation="number"  class="form-control" placeholder="e.g. 1" />
+									  <input name="floor" type="text" data-validation="text"  class="form-control" placeholder="celler" />
 									  </div>
 									  <div class="form-group ">
 									  <label>Name</label>
-									  <input type="text" type="text" required class="form-control" placeholder="Table-Lamp">
+									  <input name="name" type="text" required class="form-control" placeholder="Table-Lamp">
 									   <p class="help-block text-warning"></p>
 									   </div>
+									    <button type="submit" class="btn-block btn btn-lg btn-primary">Save</button>
                                 </div>
                             </div>
+                            </form>
                         </div><!-- /.col-md-4 -->
+							<div class="col-md-4 col-sm-6 col-xs-12">
+								<form class="setupForm" data-rrsection="units">
+								<div class="feature">
+									<i class="fa fa-tachometer blue"></i>
+									<div class="feature-content">
+										<h4>Units</h4>
+										<p>How many Ticks are a Unit</p>
+										  <div class="form-group ">
+											<label>Unit label</label>
+											  <input type="text" type="text" data-validation="text" class="form-control" placeholder="kw/h or m³" />
+											   <p class="help-block text-danger"></p>
+										   </div>
+										  <div class="form-group ">
+										  <label>Impulses per Unit</label>
+											<input type="text" type="number" step="1" min="1" data-validation="number" class="form-control" placeholder="e.g.1000" />
+											<p class="help-block text-danger"></p>
+										  </div>
+										  <button type="submit" class="btn-block btn btn-lg btn-primary">Save</button>
+									</div>
+								</div>
+								</form>
+							</div><!-- /.col-md-4 -->
+						</div><!-- /.row -->
+					    <div class="row">
                         <div class="col-md-4 col-sm-6 col-xs-12">
+							<form class="setupForm" data-rrsection="ntp" >
                             <div class="feature">
-                                <i class="fa fa-paper-plane"></i>
+                               <i class="fa fa-clock-o blue"></i>
                                 <div class="feature-content">
-                                    <h4>HTTP send</h4>
-                                    <p>Set a URL that is called on state-changes</p>
+                                    <h4>NTP</h4>
+                                    <p>Time synchronisation</p>
 									 <div class="form-group ">
-									 <label class="checkbox-inline"><input type="checkbox" value="">Enable HTTP-Send</label>
+									 <label class="checkbox-inline">
+										 <input type="hidden" value="false" name="enabled">
+										 <input type="checkbox" value="true" name="enabled">Enable NTP
+									 </label>
 									 </div>
-									 <div class="form-group ">
-									  <label>URL</label>
-									  <div class="input-group">
-									  <span class="input-group-addon">http://</span>
-									  <input type="text" type="text" data-validation="number" class="form-control"placeholder="192.168.0.128/log.php?cnt={cnt}&id={id}" />
-									   <p class="help-block text-danger"></p>
-									   </div>
+									<div class="form-group ">
+										  <label>Interval</label>
+										  <div class="input-group">
+											<span class="input-group-addon">every</span>
+											<input name="interval" type="text" data-validation="number" class="form-control"placeholder="" />
+											<span class="input-group-addon">hours</span>
+										  </div>
+										   <p class="help-block text-danger"></p>
 									  </div>
+									  <button type="submit" class="btn-block btn btn-lg btn-primary">Save</button>
                                 </div>
                             </div>
+                            </form>
+                           
                         </div><!-- /.col-md-4 -->
-						 </div><!-- /.row -->
-						<div class="row">
-						 <div class="col-md-4 col-sm-6 col-xs-12">
-                            <div class="feature">
-                                <i class="fa fa-paper-plane"></i>
-                                <div class="feature-content">
-                                    <h4>HTTP 23423423</h4>
-                                    <p>Set a URL that is called on state-changes</p>
-									 <div class="form-group ">
-									  <label>URL</label>
-									  <div class="input-group">
-									  <span class="input-group-addon">http://</span>
-									  <input type="text" type="text" data-validation="number" class="form-control" placeholder="192.168.0.128/log.php?cnt={cnt}&id={id}" />
-									   <p class="help-block text-danger"></p>
-									   </div>
-									  </div>
-                                </div>
-                            </div>
-                        </div><!-- /.col-md-4 -->
-					</form>
-                    </div><!-- /.row -->
+						</div><!-- /.row -->
                 </div>
                 
             </div>
         </div>
-        <!-- End Feature Section -->
+        <!-- End Setup Section -->
         
         
         
@@ -360,171 +381,43 @@
                 <div class="container">
                     <div class="row">
                         <div class="section-title text-center">
-                            <h3>Our Portfolio</h3>
-                            <p>Duis aute irure dolor in reprehenderit in voluptate</p>
+                            <h3>TODO</h3>
+                            <p>her it goes</p>
                         </div>
                     </div>
                     <div class="row">
-                        
-                     
-                        
+							 <div class="col-md-4 col-sm-6 col-xs-12">
+								 <form class="setupForm" data-rrsection="httpSend">
+                            <div class="feature">
+                                <i class="fa fa-paper-plane green"></i>
+                                <div class="feature-content">
+                                    <h4>HTTP send</h4>
+                                    <p>Set a URL that is called on state-changes</p>
+									 <div class="form-group ">
+									 <label class="checkbox-inline">
+										 <input type="hidden" value="false" name="enabled">
+										 <input type="checkbox" value="true" name="enabled">Enable HTTP-Send
+									 </label>
+									 </div>
+									 <div class="form-group ">
+										  <label>URL</label>
+										  <div class="input-group">
+											<span class="input-group-addon">http://</span>
+											<input name="url" type="text" data-validation="number" class="form-control"placeholder="192.168.0.128/log.php?cnt={cnt}&id={id}" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									  </div>
+									  <button type="submit" class="btn-block btn btn-lg btn-success">Save</button>
+                                </div>
+                            </div>
+                            </form>
+                        </div><!-- /.col-md-4 --> 
                     </div><!-- /.row -->
                 </div>
                 
             </div>
         </div>
         <!-- End Portfolio Section -->
-        
-        
-        <!-- Start About Us Section -->
-        <div class="section-modal modal fade" id="about-modal" tabindex="-1" role="dialog" aria-hidden="true">
-            <div class="modal-content">
-                <div class="close-modal" data-dismiss="modal">
-                    <div class="lr">
-                        <div class="rl">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="container">
-                    <div class="row">
-                        <div class="section-title text-center">
-                            <h3>About Us</h3>
-                            <p>Duis aute irure dolor in reprehenderit in voluptate</p>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="about-text">
-                                <p>Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident. It has roots in a piece of classical Latin literature from 45 BC</p>
-                                <div class="row">
-                                    <div class="col-md-4 col-sm-6">
-                                        <ul>
-                                            <li><i class="fa fa-check-square"></i>Sed ut perspiciatis unde omnis iste natus</li>
-                                            <li><i class="fa fa-check-square"></i>Nor again is there anyone who loves</li>
-                                            <li><i class="fa fa-check-square-o"></i>At vero eos et accusamus et iusto odio</li>
-                                            <li><i class="fa fa-check-square-o"></i>Et harum quidem rerum facilis</li>
-                                        </ul>
-                                    </div>
-                                    <div class="col-md-4 col-sm-6">
-                                        <ul>
-                                            <li><i class="fa fa-check-square"></i>Nor again is there anyone who loves</li>
-                                            <li><i class="fa fa-check-square"></i>Nor again is there anyone who loves</li>
-                                            <li><i class="fa fa-check-square-o"></i>Et harum quidem rerum facilis</li>
-                                            <li><i class="fa fa-check-square-o"></i>At vero eos et accusamus et iusto odio</li>
-                                        </ul>
-                                    </div>
-                                    <div class="col-md-4 col-sm-6">
-                                        <ul>
-                                            <li><i class="fa fa-check-square"></i>Nor again is there anyone who loves</li>
-                                            <li><i class="fa fa-check-square"></i>Nor again is there anyone who loves</li>
-                                            <li><i class="fa fa-check-square-o"></i>Et harum quidem rerum facilis</li>
-                                            <li><i class="fa fa-check-square-o"></i>At vero eos et accusamus et iusto odio</li>
-                                        </ul>
-                                    </div>
-                                </div><!-- /.row -->
-                            </div>
-                        </div>
-                    </div><!-- /.row -->
-                    <div class="row">
-                        <div class="col-md-6 col-sm-6">
-                            <div class="skill-shortcode">
-                        
-                                <!-- Progress Bar -->
-                                <div class="skill">
-                                    <p>Web Design</p>          
-                                    <div class="progress">         
-                                        <div class="progress-bar" role="progressbar"  data-percentage="60">
-                                            <span class="progress-bar-span" >60%</span>
-                                            <span class="sr-only">60% Complete</span>
-                                        </div>
-                                    </div>  
-                                </div>
-
-                                <!-- Progress Bar -->
-                                <div class="skill">
-                                    <p>HTML & CSS</p>          
-                                    <div class="progress">         
-                                        <div class="progress-bar" role="progressbar"  data-percentage="95">
-                                            <span class="progress-bar-span" >95%</span>
-                                            <span class="sr-only">95% Complete</span>
-                                        </div>
-                                    </div>  
-                                </div>
-
-                                <!-- Progress Bar -->
-                                <div class="skill">
-                                    <p>Wordpress</p>          
-                                    <div class="progress">         
-                                        <div class="progress-bar" role="progressbar"  data-percentage="80">
-                                            <span class="progress-bar-span" >80%</span>
-                                            <span class="sr-only">80% Complete</span>
-                                        </div>
-                                    </div>  
-                                </div>
-
-                                <!-- Progress Bar -->
-                                <div class="skill">
-                                    <p>Joomla</p>          
-                                    <div class="progress">         
-                                        <div class="progress-bar" role="progressbar"  data-percentage="100">
-                                            <span class="progress-bar-span" >100%</span>
-                                            <span class="sr-only">100% Complete</span>
-                                        </div>
-                                    </div>  
-                                </div>
-
-                                <!-- Progress Bar -->
-                                <div class="skill">
-                                    <p>Extension</p>          
-                                    <div class="progress">         
-                                        <div class="progress-bar" role="progressbar"  data-percentage="70">
-                                            <span class="progress-bar-span" >70%</span>
-                                            <span class="sr-only">70% Complete</span>
-                                        </div>
-                                    </div>  
-                                </div>
-
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="custom-tab">
-                        
-                                <ul class="nav nav-tabs nav-justified" role="tablist">
-                                    <li class="active"><a href="#tab-1" role="tab" data-toggle="tab">Our Mission</a></li>
-                                    <li><a href="#tab-2" role="tab" data-toggle="tab">Our Vission</a></li>
-                                    <li><a href="#tab-3" role="tab" data-toggle="tab">Company History</a></li>
-                                </ul>
-
-                                <div class="tab-content">
-
-                                    <div class="tab-pane active" id="tab-1">
-                                        <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.</p>
-                                        <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
-                                     </div>
-
-
-                                    <div class="tab-pane" id="tab-2">
-                                        <p>Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.</p>
-                                        <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
-                                    </div>
-
-
-                                    <div class="tab-pane" id="tab-3">
-                                        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
-                                        <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
-                                    </div>
-
-                                </div><!-- /.tab-content -->
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-        </div>
-        <!-- End About Us Section -->
         
         
         <!-- Start Service Section -->

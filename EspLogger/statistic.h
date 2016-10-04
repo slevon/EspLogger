@@ -84,8 +84,8 @@ class Statistic{
         str +=  "<line x1='"+String(data[i-1])+"' y1='"+String((i-1)*(stepSize))+"' x2='"+String(data[i])+"' y2='"+String((i-1)*(stepSize))+"' "
         + "style='stroke:rgb("+String(r)+","+String(g)+","+String(b)+");stroke-width:"+String(line)+"' stroke-linecap='round' />";
       }
-      Serial.print("\nStatisik SVG");
-      Serial.println(str);
+      DEBUGPRINT.print("\nStatisik SVG");
+      DEBUGPRINT.println(str);
       
       return str;
     }
@@ -95,8 +95,8 @@ class Statistic{
       for(int i = 0;i<size;i++){
         str +=  String(i)+";"+data[i]+"\n";
       }
-      Serial.print("\nStatisik SVG");
-      Serial.println(str);
+      DEBUGPRINT.print("\nStatisik SVG");
+      DEBUGPRINT.println(str);
       
       return str;
     }

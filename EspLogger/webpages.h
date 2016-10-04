@@ -123,7 +123,7 @@ void setupTelegram() {/*
   String statusString ="";
   if(server.args() > 0){
     for ( uint8_t i = 0; i < server.args(); i++ ) {
-      Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
+      DEBUGPRINT.println(server.argName ( i ) + ": " + server.arg ( i ));
       if(server.argName (i) == "BotEnable"){
         rrsettings.settings.BotEnable=server.arg (i).toInt();
       }

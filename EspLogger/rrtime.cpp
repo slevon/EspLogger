@@ -28,21 +28,21 @@ time_t RRTime::getTime(){
   const int timeZone = 1;     // Central European Time
   WiFiUDP udp; // A UDP instance to let us send and receive packets over UDP
   udp.begin(localPort);
-  Serial.print("Local port: ");
-  Serial.println(udp.localPort());
-  Serial.println("waiting for sync");
+  DEBUGPRINT.print("Local port: ");
+  DEBUGPRINT.println(udp.localPort());
+  DEBUGPRINT.println("waiting for sync");
 
      //get a random server from the pool
   if(!WiFi.hostByName(ntpServerName, timeServerIP)){
-    Serial.print("ERROR; Could not resolve IP using ");
+    DEBUGPRINT.print("ERROR; Could not resolve IP using ");
     IPAddress fallBack(132, 163, 4, 102);
     timeServerIP = fallBack;
-    Serial.println(timeServerIP);
+    DEBUGPRINT.println(timeServerIP);
     } 
-  Serial.print("Timesever IP:");
-  Serial.println(timeServerIP);
+  DEBUGPRINT.print("Timesever IP:");
+  DEBUGPRINT.println(timeServerIP);
   while (udp.parsePacket() > 0) ; // discard any previously received packets
-  Serial.println("Transmit NTP Request");
+  DEBUGPRINT.println("Transmit NTP Request");
   // set all bytes in the buffer to 0
   /////////////////////////////////////////////////////////////////////////
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
@@ -67,7 +67,7 @@ time_t RRTime::getTime(){
   while (millis() - beginWait < 3000) {
     int size = udp.parsePacket();
     if (size >= NTP_PACKET_SIZE) {
-      Serial.println("Receive NTP Response");
+      DEBUGPRINT.println("Receive NTP Response");
       udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
       unsigned long secsSince1900;
       // convert four bytes starting at location 40 to a long integer
@@ -81,25 +81,25 @@ time_t RRTime::getTime(){
       return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
     }
   }
-  Serial.println("No NTP Response :-(");
+  DEBUGPRINT.println("No NTP Response :-(");
   return 0; // return 0 if unable to get the time
 }
 
 
 void RRTime::digitalClockDisplay(){
   // digital clock display of the time
-  Serial.print(hour());
-  Serial.print(":");
-  Serial.print(getDigits(minute()));
-  Serial.print(":");
-  Serial.print(getDigits(second()));
-  Serial.print(" ");
-  Serial.print(day());
-  Serial.print(".");
-  Serial.print(month());
-  Serial.print(".");
-  Serial.print(year()); 
-  Serial.println(); 
+  DEBUGPRINT.print(hour());
+  DEBUGPRINT.print(":");
+  DEBUGPRINT.print(getDigits(minute()));
+  DEBUGPRINT.print(":");
+  DEBUGPRINT.print(getDigits(second()));
+  DEBUGPRINT.print(" ");
+  DEBUGPRINT.print(day());
+  DEBUGPRINT.print(".");
+  DEBUGPRINT.print(month());
+  DEBUGPRINT.print(".");
+  DEBUGPRINT.print(year()); 
+  DEBUGPRINT.println(); 
 }
 
 String RRTime::timeString(){

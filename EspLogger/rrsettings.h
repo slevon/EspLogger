@@ -1,6 +1,7 @@
 #ifndef RRSETTINGS
 #define RRSETTINGS
 
+#include "main.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
@@ -18,16 +19,16 @@ class RRSettings{
 
     bool save();
     bool saveServerArgs(ESP8266WebServer& server);
-    bool load(String name);
+    bool load(String filename);
     String toJson(){String d; data->prettyPrintTo(d); return d;} 
     String wifiList();
     static String urldecode(String url);
     //String operator [](String key){ if(configLoaded){return (*data)[key].asString();} return "";}
     //String & operator [](String key) const { if(configLoaded){return(*data)[key].as<char*>();} data = &jsonBuffer.parseObject(String("{}")); return (*data)[key].as<char*>();}
-    String get(String key){if(configLoaded){return (*data)[key].asString();} return "";}
+    String get(String key){if(configLoaded && (*data).containsKey(key)){return (*data)[key].asString();} return "";}
     void set(String key,JsonVariant value){if(!configLoaded){ data = &jsonBuffer.parseObject(String("{}")); }  (*data)[key]=value;}
-    bool getBool(String key){if(configLoaded) {return (*data)[key].as<bool>();} return false;}
-    long getLong(String key){if(configLoaded){return (*data)[key].as<long>();} return -1;}
+    bool getBool(String key,bool defaultValue=false){if(configLoaded) {return (*data)[key].as<bool>();} return defaultValue;}
+    long getLong(String key, long defaultValue=-1){if(configLoaded){return (*data)[key].as<long>();} return defaultValue;}
     
   private:
     static unsigned char h2int(char c);

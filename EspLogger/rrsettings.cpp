@@ -12,13 +12,14 @@ RRSettings::~RRSettings() {
 bool RRSettings::save() {
   File configFile = SPIFFS.open(currentFilename, "w");
   if (!configFile) {
-    Serial.println("Failed to open config file for writing");
+    DEBUGPRINT.println("Failed to open config file for writing");
      configFile.close();
     return false;
   }
-
+ data->printTo(DEBUGPRINT);
   data->printTo(configFile);
   configFile.close();
+  DEBUGPRINT.println("Config saved");
   return true;
 }
 
@@ -26,31 +27,31 @@ bool RRSettings::saveServerArgs(ESP8266WebServer& server){
 
   if(!configLoaded){
     //create new object
-    data=&jsonBuffer.parseObject("{}");
+    data=&jsonBuffer.createObject();
     }
    for ( uint8_t i = 0; i < server.args(); i++ ) {
-      Serial.println(server.argName ( i ) + ": " + server.arg ( i ));
-      Serial.println();
+      DEBUGPRINT.println(server.argName ( i ) + ": " + server.arg ( i ));
+      DEBUGPRINT.println();
         (*data)[server.argName(i)]=RRSettings::urldecode(server.arg(i).c_str());
       
       }
     return save();
 }
 
-bool  RRSettings::load(String name) {
+bool  RRSettings::load(String filename) {
   configLoaded=false;
-  currentFilename = String("/config/")+name+".json";
+  currentFilename = String("/config/")+filename+".json";
   File configFile = SPIFFS.open(currentFilename, "r");
   
   if (!configFile) {
-    Serial.println("Failed to open config file");
+    DEBUGPRINT.println("Failed to open config file: "+filename);
     configFile.close();
     return false;
   }
   
   size_t size = configFile.size();
   if (size > 1024) {
-    Serial.println("Config file size is too large");
+    DEBUGPRINT.println("Config file size is too large");
     configFile.close();
     return false;
   }
@@ -62,19 +63,19 @@ bool  RRSettings::load(String name) {
   // buffer to be mutable. If you don't use ArduinoJson, you may as well
   // use configFile.readString instead.
   configFile.readBytes(buf.get(), size);
-  
   data = &jsonBuffer.parseObject(buf.get());
   
   if (!data->success()) {
-    Serial.println("Failed to parse config file");
+    DEBUGPRINT.println("Failed to parse config file");
     return false;
   }
   
-  Serial.println("Loaded Config: "+name);
+  DEBUGPRINT.println("Loaded Config: "+filename);
+  data->printTo(DEBUGPRINT);
   for(JsonObject::iterator it=data->begin(); it!=data->end();++it){
-    Serial.print(it->key);
-    Serial.print(": ");
-    Serial.print(it->value.asString());
+    DEBUGPRINT.print(it->key);
+    DEBUGPRINT.print(": ");
+    DEBUGPRINT.print(it->value.asString());
     }
   configFile.close();
   configLoaded=true;
@@ -85,15 +86,15 @@ bool  RRSettings::load(String name) {
 String RRSettings::wifiList() {
   String Wifis = "";
   String selected = "";
-  Serial.println(F("scan start"));
+  DEBUGPRINT.println(F("scan start"));
   int n = WiFi.scanNetworks();
-  Serial.println(F("scan done"));
+  DEBUGPRINT.println(F("scan done"));
   if (n == 0) {
-    Serial.println(F("no networks found"));
+    DEBUGPRINT.println(F("no networks found"));
     Wifis = F("<option disabled>No Networks</option>");
   } else {
-    Serial.print(n);
-    Serial.println(" networks found");
+    DEBUGPRINT.print(n);
+    DEBUGPRINT.println(" networks found");
     Wifis = F("<option value=''>Deaktiveren</option>");
     String signal = "";
      load("wifi");
@@ -109,9 +110,9 @@ String RRSettings::wifiList() {
       } else {
         signal = "&#128522"; //good
       }
-      Serial.print(i + 1);
-      Serial.print(": ");
-      Serial.print(WiFi.SSID(i));
+      DEBUGPRINT.print(i + 1);
+      DEBUGPRINT.print(": ");
+      DEBUGPRINT.print(WiFi.SSID(i));
      
       if ( currentWifi == WiFi.SSID(i)) {
         selected = "selected";
@@ -119,13 +120,13 @@ String RRSettings::wifiList() {
         selected = "";
       }
       Wifis += String("<option value='" + String(WiFi.SSID(i)) + "' " + selected + ">" + String(WiFi.SSID(i)) + " - Signalstärke: " + String(signal) + "</option>\n");
-      Serial.print(" (");
-      Serial.print(WiFi.RSSI(i));
-      Serial.print(")");
-      Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE) ? " " : "*");
+      DEBUGPRINT.print(" (");
+      DEBUGPRINT.print(WiFi.RSSI(i));
+      DEBUGPRINT.print(")");
+      DEBUGPRINT.println((WiFi.encryptionType(i) == ENC_TYPE_NONE) ? " " : "*");
     }
-    Serial.println();
-    Serial.println(Wifis);
+    DEBUGPRINT.println();
+    DEBUGPRINT.println(Wifis);
   }
 
   return Wifis;

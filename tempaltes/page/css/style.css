@@ -1,6 +1,4 @@
-/*@import url(http://fonts.googleapis.com/css?family=Open+Sans:400,300,700,600);
-@import url(http://fonts.googleapis.com/css?family=Oswald:400,300);
-*/
+
 
 body {
     background: url(../images/background.jpg) no-repeat;
@@ -8,7 +6,7 @@ body {
     background-size: cover;
     background-position: 50% 50%;
 	background-color:#222;
-    font-family: 'Open Sans', sans-serif;
+    font-family: sans-serif;
 	heigth:100%;
 }
 
@@ -39,15 +37,15 @@ a:hover {
 }
 
 p {
-    font-family: 'Open Sans', sans-serif;
+    font-family: sans-serif;
     font-size: 13px;
     line-height: 21px;
 }
 
 
 .btn-primary {
-    border-color: #FF432E;
-    background-color: #FF432E;
+   /* border-color: #FF432E;
+    background-color: #FF432E;*/
     text-transform: uppercase;
     font-weight: 300;
     color: #fff;
@@ -62,8 +60,8 @@ p {
 }
 
 .btn-secondary {
-    border-color: #AAA;
-    background-color: #AAA;
+   /* border-color: #AAA;
+    background-color: #AAA;*/
     text-transform: uppercase;
     font-weight: 300;
     color: #fff;
@@ -82,10 +80,10 @@ p {
 .btn-primary:active,
 .btn-primary.active,
 .open .dropdown-toggle.btn-primary {
-    color: #FF432E;
+   /* color: #FF432E;
     border-color: #ea321e;
 	border-width-color: 5px;
-    background-color: #FFF !important;
+    background-color: #FFF !important; */
 }
 
 .btn-primary.disabled,
@@ -103,8 +101,8 @@ fieldset[disabled] .btn-primary:active,
 .btn-primary.disabled.active,
 .btn-primary[disabled].active,
 fieldset[disabled] .btn-primary.active {
-    border-color: #FF432E;
-    background-color: #FF432E;
+    /*border-color: #FF432E;
+    background-color: #FF432E;*/
 }
 
 
@@ -114,7 +112,7 @@ fieldset[disabled] .btn-primary.active {
     color: #666 !important;
     //font-style: italic;
     font-size: 28px;
-    font-family: 'Oswald', sans-serif;
+    font-family: sans-serif;
     text-transform: none;
 }
 
@@ -198,7 +196,7 @@ fieldset[disabled] .btn-primary.active {
 }
 
 .menu-item a p {
-    font-family: 'Oswald', sans-serif;
+    font-family: sans-serif;
     font-weight: 300;
     font-size: 20px;
 }
@@ -361,7 +359,7 @@ and (max-width : 1199px) {
     font-size: 15px;
     color: #666;
     font-weight: 300;
-    font-family: 'Oswald', sans-serif;
+    font-family: sans-serif;
 }
 
 .feature-2 h4{
@@ -369,7 +367,7 @@ and (max-width : 1199px) {
     color: #444;
     padding-bottom: 10px;
     font-weight: 300;
-    font-family: 'Oswald', sans-serif;
+    font-family: sans-serif;
 }
 
 .feature p, .feature-2 p {
@@ -383,7 +381,6 @@ and (max-width : 1199px) {
 .feature i {
    font-size:3.5em;
    color:#fff;
-    background: #FF432E;
     width: 100px;
     height: 100px;
    padding:25px;
@@ -403,17 +400,50 @@ and (max-width : 1199px) {
 	-o-transition: box-shadow .6s ease-in-out;
 	transition: box-shadow .6s ease-in-out;
 }
+
+
 .no-touch .feature:hover i,
 	.no-touch .feature:active i,
-	.no-touch .feature:focus i {
+	.no-touch .feature:focus i{
         
 		-webkit-transition: box-shadow .4s ease-in-out;
 		-moz-transition: box-shadow .4s ease-in-out;
 		-o-transition: box-shadow .4s ease-in-out;
 		transition: box-shadow .4s ease-in-out;
-		box-shadow: 0 0 0 0 #FF432E;
 }
 
+.no-touch .feature:hover i.blue,
+	.no-touch .feature:active i.blue,
+	.no-touch .feature:focus i.blue{
+		box-shadow: 0 0 0 0 #28ABE3;
+}
+
+.no-touch .feature:hover i.green,
+	.no-touch .feature:active i.green,
+	.no-touch .feature:focus i.green{
+		box-shadow: 0 0 0 0 #72bf48;
+}
+.no-touch .feature:hover i.red,
+	.no-touch .feature:active i.red,
+	.no-touch .feature:focus i.red{
+		box-shadow: 0 0 0 0 #FF432E;
+}
+.no-touch .feature:hover i.light-red,
+	.no-touch .feature:active i.light-red,
+	.no-touch .feature:focus i.light-red{
+		box-shadow: 0 0 0 0 #FB6648;
+}
+.no-touch .feature:hover i.light-orange,
+	.no-touch .feature:active i.light-orange,
+	.no-touch .feature:focus i.light-orange{
+		box-shadow: 0 0 0 0 #FA6900;
+}
+
+.no-touch .feature:hover i.color,
+	.no-touch .feature:active i.color,
+	.no-touch .feature:focus i.color{
+		box-shadow: 0 0 0 0 #0ECEAB;
+}
 
 .feature-2 i {
     color:#FF432E;
@@ -448,7 +478,7 @@ and (max-width : 1199px) {
     padding-top: 20%;
     padding-bottom: 10%;
     color: #fff;
-    font-family: 'Oswald', sans-serif;
+    font-family: sans-serif;
     font-weight: 300;
     font-size: 20px;
 }
@@ -581,7 +611,7 @@ and (max-width : 1199px) {
     padding: 10px;
     font-size: 18px;
     color: #fff;
-    font-family: 'Oswald', sans-serif;
+    font-family: sans-serif;
     font-weight: 300;
 }
 
@@ -698,7 +728,7 @@ and (max-width : 991px) {
 }
 
 .team-details {
-    font-family: 'Open Sans', sans-serif;
+    font-family: sans-serif;
     padding-left: 10px;
     position: absolute;
     top: 0;
@@ -717,7 +747,7 @@ and (max-width : 991px) {
     font-size: 25px;
     font-weight: 300;
     color: #FF432E;
-    font-family: 'Oswald', sans-serif;
+    font-family: sans-serif;
     text-transform: none;
     text-align: center;
     padding-top: 20%;
@@ -970,7 +1000,7 @@ and (max-width : 991px) {
 }
 
 .testimonial h4 {
-    font-family: 'Oswald', sans-serif;
+    font-family: sans-serif;
     font-weight: 300;
     padding-top: 20px;
     padding-bottom: 20px;
