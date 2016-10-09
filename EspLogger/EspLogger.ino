@@ -19,10 +19,7 @@
 
 //Blynk
 #include <BlynkSimpleEsp8266.h>
-#include "rrblynk.h"
-
-RRBlynk rrblynk;
-
+char blynkAuth[] = "e9f08daf80e3486a81a3c2664f271999"; //dummy allocation
 
 #if (DEBUGPRINT == terminal)
 // Attach virtual serial terminal to Virtual Pin V1
@@ -59,9 +56,12 @@ RRFs rrfs(&server);
 
 //Blynk
 bool blynkEnabled;
+bool pinToggle=false;
+int blynkRelayPin;
 
 void pinChanged(){
   PulseCnt++;
+  pinToggle=true;
 }
 
 //To read Powersupply voltage:
@@ -76,27 +76,27 @@ void setup() {
   //pinMode(BUILTIN_LED, INPUT); 
   //pinMode(BUILTIN_LED, OUTPUT); 
 
-
-  
-  rrsettings.load("relay");  //Get the settings;
-  const char* c= rrsettings.get("relayChangeUrl").c_str();
+  rrsettings.load("switch");  //Get the settings;
+  const char* c= rrsettings.get("url").c_str();
   relay.setUrl(c);
+  blynkRelayPin=(int)rrsettings.getLong("blynkPin");
+
   
   // We start by connecting to a WiFi network
   DEBUGPRINT.println();
-  DEBUGPRINT.print("Connecting to ");
   rrsettings.load("wifi");  //Get the settings;
+  DEBUGPRINT.print("Connecting to ");
   DEBUGPRINT.println(rrsettings.get("ssid"));
-
+  String  ssid=rrsettings.get("ssid");
+  String pass=rrsettings.get("pass");
   WiFi.mode(WIFI_STA); //default: join the WIFI
-  WiFi.begin(rrsettings.get("ssid").c_str(), rrsettings.get("pass").c_str());
+  WiFi.begin(ssid.c_str(), pass.c_str());
   
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     DEBUGPRINT.print(WiFi.status());
     if(millis()>15000){
       DEBUGPRINT.println("\nERROR! No Connection!\nStarting AccessPoint:");
-        /* You can remove the password parameter if you want the AP to be open. */
         WiFi.disconnect();
         delay(100);
         WiFi.mode(WIFI_AP); //create Access Pint
@@ -107,12 +107,13 @@ void setup() {
         break;
       }
   }
+ 
     DEBUGPRINT.println("");
     DEBUGPRINT.println("WiFi connected");  
     DEBUGPRINT.println("IP address: ");
     DEBUGPRINT.println(WiFi.localIP());
     rrsettings.load("device");
-    String host=rrsettings.get("deviceRoom")+String(".")+rrsettings.get("deviceName");
+    String host=rrsettings.get("floor")+"."+rrsettings.get("room")+"."+rrsettings.get("name");
     if (!MDNS.begin(host.c_str())) {
       DEBUGPRINT.println("Error setting up MDNS responder!");
     }
@@ -140,17 +141,17 @@ void setup() {
   }
 
   //Attach a GPIO Interrrupt
-   attachInterrupt(2, pinChanged, RISING);
+   attachInterrupt(D2, pinChanged, CHANGE);
 
    //enalbe Periodic sync to NTP:
   //Setup ntp sync
   DEBUGPRINT.println("Checking NTP Service");
   rrsettings.load("ntp");
-  if(rrsettings.getBool("ntpEnable")){
+  if(rrsettings.getBool("enabled")){
     setSyncProvider(rrtime.getTime);
-    if(rrsettings.getLong("ntpInterval")<1){rrsettings.set("ntpInterval",1);} //not smaler than 1h
-    setSyncInterval((rrsettings.getLong("ntpInterval"))*3600); //interval is given in h
-    DEBUGPRINT.println(String("NTP Setup: Every ")+rrsettings.get("ntpInterval") +" h");
+    if(rrsettings.getLong("interval")<1){rrsettings.set("interval",1);} //not smaler than 1h
+    setSyncInterval((rrsettings.getLong("interval"))*3600); //interval is given in h
+    DEBUGPRINT.println(String("NTP Setup: Every ")+rrsettings.get("interval") +" h");
   }
   DEBUGPRINT.println("Checking NTP Service ended");
     server.on("/", handleRoot );
@@ -193,21 +194,21 @@ void setup() {
     snprintf ( tmp, 20,"{TODO:humidity:%f}",PulseCnt);
     server.send (200, "text/plain",tmp);
   });
-  server.on("/get/relay", []() {
+  server.on("/get/switch", []() {
     char tmp[20];
-    snprintf ( tmp, 20,"{relay:%d}",relay.state());
+    snprintf ( tmp, 20,"{switch:%d}",relay.state());
     server.send (200, "text/plain",tmp);
   });
-  server.on("/set/relay/1", []() {
+  server.on("/set/switch/1", []() {
     relay.set();
     char tmp[20];
-    snprintf ( tmp, 20,"{relay:%d}",relay.state());
+    snprintf ( tmp, 20,"{switch:%d}",relay.state());
     server.send (200, "text/plain",tmp);
   });
-  server.on("/set/relay/0", []() {
+  server.on("/set/switch/0", []() {
     relay.unset();
     char tmp[20];
-    snprintf ( tmp, 20,"{relay:%d}",relay.state());
+    snprintf ( tmp, 20,"{switch:%d}",relay.state());
     server.send (200, "text/plain",tmp);
   });
   //NOW DONE IN RRFS-Class server.onNotFound(handleNotFound);
@@ -225,11 +226,20 @@ RRMail mail;
   rrsettings.load("blynk");  //Get the settings;
   blynkEnabled = rrsettings.getBool("enabled",true);
   if(blynkEnabled){
-    DEBUGPRINT.println("Blynk auth:" + rrsettings.get("auth"));
-    Blynk.config(rrsettings.get("auth").c_str());  // Here your Arduino connects to the Blynk Cloud.
-    DEBUGPRINT.print("Connecting to Blynk");
-    Blynk.connect(3333); //9999
 
+    DEBUGPRINT.print("\nBlynk auth:");
+    Serial.println(rrsettings.get("auth").c_str());
+    
+    strcpy(blynkAuth,rrsettings.get("auth").c_str());
+    Serial.print("\n\t");
+    Serial.println(blynkAuth);
+    Blynk.config(blynkAuth);  // Here your Arduino connects to the Blynk Cloud.
+    DEBUGPRINT.print("Connecting to Blynk");
+    Blynk.connect(30000);
+    //while(Blynk.connect() == false){
+      ;//whait
+    //}
+    //Blynk.begin(blynkAuth,ssid.c_str(),pass.c_str());
     if(Blynk.connected())  {
        DEBUGPRINT.println(" ok");
     }else{
@@ -240,31 +250,65 @@ RRMail mail;
 }
 
 
+// This is called for all virtual pins, that don't have BLYNK_WRITE handler
+BLYNK_WRITE_DEFAULT() {
+  Serial.print("Blynk input V");
+  Serial.print(request.pin);
+  Serial.println(":");
+  // Print all parameter values
+  for (auto i = param.begin(); i < param.end(); ++i) {
+    Serial.print("* ");
+    Serial.println(i.asString());
+  }
+
+  if(blynkRelayPin == request.pin){
+    Serial.println("Pin match!!!");
+      if(param.asInt()){
+        relay.set();
+        Serial.println("Pin Set");
+      }else{
+        relay.unset();
+        Serial.println("Pin Unset");
+      }
+    }
+}
+
+// This is called for all virtual pins, that don't have BLYNK_READ handler
+BLYNK_READ_DEFAULT() {
+  // Generate random response
+  int val = random(0, 100);
+  Serial.print("Blynk output V");
+  Serial.print(request.pin);
+  Serial.print(": ");
+  Serial.println(val);
+  Blynk.virtualWrite(request.pin, val);
+}
+
 int value = 0;
 unsigned long previousMillis = 0;
 unsigned long interval = 1000;
 byte lastLogMin=-1;
 
-
 void loop() {
   
-  
-  if(blynkEnabled){
+  if(blynkEnabled && Blynk.connected()){
     Blynk.run();
+  }
+
+  if(pinToggle){
+    pinToggle=false;
+    relay.setState(digitalRead(D2));
   }
   
   unsigned int currentMillis =0;
   if(currentMillis - previousMillis >= interval) {
     // save the last time you blinked the LED 
-    previousMillis = currentMillis;   
-
-   //TODO 
-   
+    previousMillis = currentMillis;
   }
 
-  if(second() == 0 && lastLogMin != minute()){
+  if(lastLogMin != minute()){
     lastLogMin=minute();
-    
+    relay.unset();
     unsigned int PulseCntBuff =PulseCnt;
     PulseCnt=0;
     PulsePerHour.setData(PulseCntBuff,minute());
@@ -274,11 +318,12 @@ void loop() {
     }
     PulsePerDay.sumData(PulseCntBuff,hour());
   }
-
-  
   server.handleClient();
-  //TODODO   relay.run();
-  //yield();
+  
+  //run the relay
+  if(relay.popToggled()){
+    Blynk.virtualWrite(blynkRelayPin, relay.state());
+  }
 }
 
 

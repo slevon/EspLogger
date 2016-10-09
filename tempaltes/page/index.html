@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
     <head>
-
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -135,7 +133,7 @@
                         </div>
                         
                         <div class="menu-item green" data-toggle="tooltip" title="Email, Telegram, HTTP and Blynk">
-                            <a href="#portfolio-modal" data-toggle="modal">
+                            <a href="#communication-modal" data-toggle="modal">
                                 <i class="fa fa-comments-o"></i>
                                 <p>Communication</p>
                             </a>
@@ -298,8 +296,12 @@
 									  <input name="floor" type="text" data-validation="text"  class="form-control" placeholder="celler" />
 									  </div>
 									  <div class="form-group ">
+									  <label>Room</label>
+									  <input name="room" type="text" data-validation="text"  class="form-control" placeholder="bedroom" />
+									  </div>
+									  <div class="form-group ">
 									  <label>Name</label>
-									  <input name="name" type="text" required class="form-control" placeholder="Table-Lamp">
+									  <input name="name" type="text" required class="form-control" placeholder="Lamp">
 									   <p class="help-block text-warning"></p>
 									   </div>
 									    <button type="submit" class="btn-block btn btn-lg btn-primary">Save</button>
@@ -359,6 +361,35 @@
                             </form>
                            
                         </div><!-- /.col-md-4 -->
+                        <div class="col-md-4 col-sm-6 col-xs-12">
+							<form class="setupForm" data-rrsection="switch" >
+                            <div class="feature">
+                               <i class="fa fa-lightbulb-o blue"></i>
+                                <div class="feature-content">
+                                    <h4>Relay</h4>
+                                    <p>Setup how switch state schould be distributed. Empty=off.</p>
+									<div class="form-group ">
+										  <label>Url</label>
+										  <div class="input-group">
+											<span class="input-group-addon">http://</span>
+											<input name="url" type="text" data-validation="" class="form-control"placeholder="" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									</div>
+									<div class="form-group ">
+										  <label>Blynk Pin (Virtual)</label>
+										  <div class="input-group">
+											<span class="input-group-addon">V</span>
+											<input name="blynkPin" type="text" data-validation="number" class="form-control"placeholder="e.g. 1" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									</div>
+									  <button type="submit" class="btn-block btn btn-lg btn-primary">Save</button>
+                                </div>
+                            </div>
+                            </form>
+                           
+                        </div><!-- /.col-md-4 -->
 						</div><!-- /.row -->
                 </div>
                 
@@ -368,8 +399,8 @@
         
         
         
-        <!-- Start Portfolio Section -->
-        <div class="section-modal modal fade" id="portfolio-modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <!-- Start communication Section -->
+        <div class="section-modal modal fade" id="communication-modal" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-content">
                 <div class="close-modal" data-dismiss="modal">
                     <div class="lr">
@@ -382,42 +413,69 @@
                     <div class="row">
                         <div class="section-title text-center">
                             <h3>TODO</h3>
-                            <p>her it goes</p>
+                            <p>here it goes</p>
                         </div>
                     </div>
                     <div class="row">
 							 <div class="col-md-4 col-sm-6 col-xs-12">
 								 <form class="setupForm" data-rrsection="httpSend">
-                            <div class="feature">
-                                <i class="fa fa-paper-plane green"></i>
-                                <div class="feature-content">
-                                    <h4>HTTP send</h4>
-                                    <p>Set a URL that is called on state-changes</p>
-									 <div class="form-group ">
-									 <label class="checkbox-inline">
-										 <input type="hidden" value="false" name="enabled">
-										 <input type="checkbox" value="true" name="enabled">Enable HTTP-Send
-									 </label>
-									 </div>
-									 <div class="form-group ">
-										  <label>URL</label>
-										  <div class="input-group">
-											<span class="input-group-addon">http://</span>
-											<input name="url" type="text" data-validation="number" class="form-control"placeholder="192.168.0.128/log.php?cnt={cnt}&id={id}" />
-										  </div>
-										   <p class="help-block text-danger"></p>
-									  </div>
-									  <button type="submit" class="btn-block btn btn-lg btn-success">Save</button>
-                                </div>
-                            </div>
-                            </form>
+									<div class="feature">
+										<i class="fa fa-paper-plane green"></i>
+										<div class="feature-content">
+											<h4>HTTP send (TODO)</h4>
+											<p>Set a URL that is called on state-changes</p>
+											 <div class="form-group ">
+											 <label class="checkbox-inline">
+												 <input type="hidden" value="false" name="enabled">
+												 <input type="checkbox" value="true" name="enabled">Enable HTTP-Send
+											 </label>
+											 </div>
+											 <div class="form-group ">
+												  <label>URL</label>
+												  <div class="input-group">
+													<span class="input-group-addon">http://</span>
+													<input name="url" type="text" data-validation="number" class="form-control"placeholder="192.168.0.128/log.php?cnt={cnt}&id={id}" />
+												  </div>
+												   <p class="help-block text-danger"></p>
+											  </div>
+											  <button type="submit" class="btn-block btn btn-lg btn-success">Save</button>
+										</div>
+									</div>
+								</form>
+                        </div><!-- /.col-md-4 -->
+                         <div class="col-md-4 col-sm-6 col-xs-12">
+								 <form class="setupForm" data-rrsection="blynk">
+									<div class="feature">
+										<i class="fa green">B</i>
+									
+										<div class="feature-content">
+											<h4>Blynk</h4>
+											<p>Setup Blynk Connection</p>
+											 <div class="form-group ">
+											 <label class="checkbox-inline">
+												 <input type="hidden" value="false" name="enabled">
+												 <input type="checkbox" value="true" name="enabled">Enable Blynk
+											 </label>
+											 </div>
+											 <div class="form-group ">
+												  <label>Auth-Token</label>
+												  <div class="input-group">
+													<span class="input-group-addon">Auth</span>
+													<input name="auth" type="text" data-validation="number" class="form-control"placeholder="" />
+												  </div>
+												   <p class="help-block text-danger"></p>
+											  </div>
+											  <button type="submit" class="btn-block btn btn-lg btn-success">Save</button>
+										</div>
+									</div>
+								</form>
                         </div><!-- /.col-md-4 --> 
                     </div><!-- /.row -->
                 </div>
                 
             </div>
         </div>
-        <!-- End Portfolio Section -->
+        <!-- End communication Section -->
         
         
         <!-- Start Service Section -->

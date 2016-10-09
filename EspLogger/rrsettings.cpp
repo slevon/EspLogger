@@ -16,8 +16,8 @@ bool RRSettings::save() {
      configFile.close();
     return false;
   }
- data->printTo(DEBUGPRINT);
-  data->printTo(configFile);
+ data.asObject().printTo(DEBUGPRINT);
+  data.asObject().printTo(configFile);
   configFile.close();
   DEBUGPRINT.println("Config saved");
   return true;
@@ -32,7 +32,7 @@ bool RRSettings::saveServerArgs(ESP8266WebServer& server){
    for ( uint8_t i = 0; i < server.args(); i++ ) {
       DEBUGPRINT.println(server.argName ( i ) + ": " + server.arg ( i ));
       DEBUGPRINT.println();
-        (*data)[server.argName(i)]=RRSettings::urldecode(server.arg(i).c_str());
+        (data.asObject())[server.argName(i)]=RRSettings::urldecode(server.arg(i).c_str());
       
       }
     return save();
@@ -50,33 +50,34 @@ bool  RRSettings::load(String filename) {
   }
   
   size_t size = configFile.size();
-  if (size > 1024) {
+  if (size > RRSETTINGS_BUFFER_SIZE) {
     DEBUGPRINT.println("Config file size is too large");
     configFile.close();
     return false;
   }
   
   // Allocate a buffer to store contents of the file.
-  std::unique_ptr<char[]> buf(new char[size]);
+  buf.reset((new char[size]));
   
   // We don't use String here because ArduinoJson library requires the input
   // buffer to be mutable. If you don't use ArduinoJson, you may as well
   // use configFile.readString instead.
   configFile.readBytes(buf.get(), size);
-  data = &jsonBuffer.parseObject(buf.get());
+  data = jsonBuffer.parseObject(buf.get());
   
-  if (!data->success()) {
+  if (!data.success()) {
     DEBUGPRINT.println("Failed to parse config file");
     return false;
   }
   
   DEBUGPRINT.println("Loaded Config: "+filename);
-  data->printTo(DEBUGPRINT);
-  for(JsonObject::iterator it=data->begin(); it!=data->end();++it){
-    DEBUGPRINT.print(it->key);
-    DEBUGPRINT.print(": ");
-    DEBUGPRINT.print(it->value.asString());
-    }
+  data.asObject().printTo(DEBUGPRINT);
+  DEBUGPRINT.println();
+  //for(JsonObject::iterator it=data->begin(); it!=data->end();++it){
+  //  DEBUGPRINT.print(it->key);
+  //  DEBUGPRINT.print(": ");
+  //  DEBUGPRINT.print(it->value.asString()+"\n");
+  //  }
   configFile.close();
   configLoaded=true;
   return true;
@@ -86,7 +87,7 @@ bool  RRSettings::load(String filename) {
 String RRSettings::wifiList() {
   String Wifis = "";
   String selected = "";
-  DEBUGPRINT.println(F("scan start"));
+  DEBUGPRINT.println(F("\nscan start"));
   int n = WiFi.scanNetworks();
   DEBUGPRINT.println(F("scan done"));
   if (n == 0) {
@@ -98,7 +99,7 @@ String RRSettings::wifiList() {
     Wifis = F("<option value=''>Deaktiveren</option>");
     String signal = "";
      load("wifi");
-     String currentWifi=(*data)["ssid"];
+     String currentWifi=get("ssid");
     for (int i = 0; i < n; ++i)
     {
       // Print SSID and RSSI for each network found

@@ -13,9 +13,6 @@ class RRBlynk{
   public:
   RRBlynk();
   ~RRBlynk();
-
- void run();
- 
   };
 
 
