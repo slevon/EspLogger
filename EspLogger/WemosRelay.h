@@ -23,7 +23,7 @@ class WemosRelay{
       };
     ~WemosRelay(){};
      void setUrl(const char * url){
-      snprintf( relayChangeUrl,sizeof(relayChangeUrl),"%s",url);
+      strcpy(relayChangeUrl,url);
      }
     
     byte state(){return pinState;};
@@ -48,7 +48,7 @@ class WemosRelay{
              lastToggle=millis();
              toggled=true;
              //Send state:
-             sendState();
+            // sendState();
              return true;
           }
           return false;
@@ -92,6 +92,7 @@ class WemosRelay{
           String url(relayChangeUrl);
           if(url.length()>3){  //only if set
             HTTPClient http;
+            http.setTimeout(3000);
             url.replace("{state}",String(state()));
             DEBUGPRINT.println(String("Sending http state: ")+url);
             http.begin(String("http://")+url); //HTTP

@@ -17,18 +17,18 @@ RRFs::RRFs(ESP8266WebServer* webserver){
   //Setup pages:
    //SERVER INIT
   //list directory
-  server->on("/fs/list", HTTP_GET, std::bind(&RRFs::handleFileList,this));
+  server->on("/fs/list/", HTTP_GET, std::bind(&RRFs::handleFileList,this));
   //load editor
-  server->on("/fs/edit", HTTP_GET, [&](){
+  server->on("/fs/edit/", HTTP_GET, [&](){
     if(!handleFileRead("/edit.htm")) server->send(404, "text/plain", "FileNotFound");
   });
   //create file
-  server->on("/fs/edit", HTTP_PUT, std::bind(&RRFs::handleFileCreate,this));
+  server->on("/fs/edit/", HTTP_PUT, std::bind(&RRFs::handleFileCreate,this));
   //delete file
-  server->on("/fs/edit", HTTP_DELETE, std::bind(&RRFs::handleFileDelete,this));
+  server->on("/fs/edit/", HTTP_DELETE, std::bind(&RRFs::handleFileDelete,this));
   //first callback is called after the request has ended with all parsed arguments
   //second callback handles file uploads at that location
-  server->on("/fs/edit", HTTP_POST, [&](){ server->send(200, "text/plain", ""); },std::bind(&RRFs::handleFileUpload,this));
+  server->on("/fs/edit/", HTTP_POST, [&](){ server->send(200, "text/plain", ""); },std::bind(&RRFs::handleFileUpload,this));
   
   //called when the url is not defined here
   //use it to load content from SPIFFS
@@ -163,7 +163,7 @@ void RRFs::handleFileList() {
     output += "\"name\":\"";
     output += String(dir.fileName()).substring(1);
     output += "\",\"size\":\"";
-    output += String(dir.fileSize()).substring(1);
+    output += formatBytes(dir.fileSize());
     output += "\"}";
   }
   

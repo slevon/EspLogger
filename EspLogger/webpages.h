@@ -58,15 +58,14 @@ void handleNotFound() {
 void handleSetup() {
   Serial.println("Starting Setup Request");
    //Check if we have a transmission of arguments, if so: Check if we can apply it to the settings:
-  String saved ="false";
+  char saved[] ="false";
   if(server.args() > 0){
-    rrsettings.load(server.arg("rrsection"));
     if(rrsettings.saveServerArgs(server)){
-      saved="true";
+      strcpy(saved,"true");
     }
   }
   rrsettings.load(server.arg("rrsection"));
-  rrsettings.set("saved",JsonVariant(saved));
+  //rrsettings.set("saved",saved);
   server.send( 200, "application/json", rrsettings.toJson() );
   Serial.println("Ended Setup Request");
 }

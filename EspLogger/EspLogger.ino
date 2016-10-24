@@ -41,13 +41,24 @@ WidgetTerminal terminal(V1);
 
 #include "rrfs.h"
 
-unsigned int PulseCnt=0;
+#if DHT_ACTIVE == 1
+  #include <DHT.h>
+  DHT dht(DHT_PIN,DHT_TYPE);
+  bool dhtBlynkSend;
+  bool dhtHttpSend;
+  char dhtHttpUrl[64];
+  int  blynkTempPin;
+  int  blynkHumPin;
+  int  blynkTempIndexPin;
+#endif
+
+
+
 ESP8266WebServer server(80);
 RRTime rrtime;
 RRSettings rrsettings;
 Statistic<unsigned int,60> PulsePerHour; //last hour
 Statistic<unsigned int,24> PulsePerDay; //last day
-const int led = 1;
 
 WemosRelay relay;
 
@@ -56,13 +67,26 @@ RRFs rrfs(&server);
 
 //Blynk
 bool blynkEnabled;
-bool pinToggle=false;
 int blynkRelayPin;
+//units and Puklse count
+bool pulseBlynkSend;
+int blynkPulsePin;
 
-void pinChanged(){
-  PulseCnt++;
-  pinToggle=true;
+
+//interrrup Handler
+unsigned int PulseCnt=0;
+int pulsesPerUnit=1; //Wir aus der Config ausgelsen (bsp: 1000imp /kwh)
+bool pinButtonToggle=false;
+
+void pinButtonChanged(){
+  pinButtonToggle=true;
 }
+
+void pinPulseChanged(){
+  PulseCnt++;
+}
+
+
 
 //To read Powersupply voltage:
 ADC_MODE(ADC_VCC);
@@ -71,24 +95,29 @@ void setup() {
   relay.unset();
   DEBUGPRINT.begin(115200);
   delay(10);
-  DEBUGPRINT.print("VCC:");DEBUGPRINT.println(ESP.getVcc());
-  
-  //pinMode(BUILTIN_LED, INPUT); 
-  //pinMode(BUILTIN_LED, OUTPUT); 
+  DEBUGPRINT.print("VCC:");DEBUGPRINT.println(ESP.getVcc()); 
+  //pinMode(LED_PIN,OUTPUT);
+  //digitalWrite(LED_PIN,HIGH^LED_INVERTED);
 
+  Serial.print("Realy PIN is: ");
+  Serial.print(RELAY_PIN);
+  
   rrsettings.load("switch");  //Get the settings;
   const char* c= rrsettings.get("url").c_str();
+  Serial.println("Charpointer");
   relay.setUrl(c);
+  Serial.println("URL");
   blynkRelayPin=(int)rrsettings.getLong("blynkPin");
-
+  Serial.println("PIN");
   
   // We start by connecting to a WiFi network
   DEBUGPRINT.println();
   rrsettings.load("wifi");  //Get the settings;
   DEBUGPRINT.print("Connecting to ");
-  DEBUGPRINT.println(rrsettings.get("ssid"));
   String  ssid=rrsettings.get("ssid");
   String pass=rrsettings.get("pass");
+  DEBUGPRINT.println(ssid);
+  
   WiFi.mode(WIFI_STA); //default: join the WIFI
   WiFi.begin(ssid.c_str(), pass.c_str());
   
@@ -120,12 +149,30 @@ void setup() {
     DEBUGPRINT.printf("Ready! Open http://%s.local in your browser\n", host.c_str());
    // Add service to MDNS-SD
    MDNS.addService("http", "tcp", 80);
+
+  //mail
+  RRMail mail;
+  rrsettings.load("mail");
+  //reciepeints with ";" separation
+  if(rrsettings.getBool("enabled")){
+    if(mail.sendMail(rrsettings.get("recipients"),"Startup","ESP mit dem Hostnamen: http://"+host+" gestartet...")){
+      DEBUGPRINT.println("Email sent");
+    }else{
+      DEBUGPRINT.println("Email failed");
+    }
+  }
   //Telegramm:
   //bot = new TelegramBOT(rrsettings.settings.BotToken, rrsettings.settings.BotName, rrsettings.settings.BotUsername);
   //bot->begin();      // launch Bot functionalities
   //if(rrsettings.settings.BotEnable){
   //  bot->sendMessage(rrsettings.settings.BotChatId, "ESPLogger Tool ist Online\n", "");
   //}
+
+  //Unit;
+  rrsettings.load("untis");
+  pulsesPerUnit =rrsettings.getLong("pulsesPerUnit");
+  pulseBlynkSend=rrsettings.getBool("pulseBlynkSend");
+  blynkPulsePin =rrsettings.getLong("blynkPulsePin");
 
   if(SPIFFS.begin()){
     DEBUGPRINT.println("Filesystem started");
@@ -141,7 +188,9 @@ void setup() {
   }
 
   //Attach a GPIO Interrrupt
-   attachInterrupt(D2, pinChanged, CHANGE);
+   attachInterrupt(BUTTON_PIN, pinButtonChanged, RISING);
+   //Attach a GPIO Interrrupt
+   attachInterrupt(PULSE_PIN, pinPulseChanged, RISING);  //CHANGE
 
    //enalbe Periodic sync to NTP:
   //Setup ntp sync
@@ -149,21 +198,23 @@ void setup() {
   rrsettings.load("ntp");
   if(rrsettings.getBool("enabled")){
     setSyncProvider(rrtime.getTime);
-    if(rrsettings.getLong("interval")<1){rrsettings.set("interval",1);} //not smaler than 1h
-    setSyncInterval((rrsettings.getLong("interval"))*3600); //interval is given in h
+    if(rrsettings.getLong("interval")<1){
+      setSyncInterval(3600);//not smaler than 1h
+    }else{//not smaler than 1h
+    setSyncInterval((rrsettings.getLong("interval"))*3600);
+    }//interval is given in h
     DEBUGPRINT.println(String("NTP Setup: Every ")+rrsettings.get("interval") +" h");
   }
   DEBUGPRINT.println("Checking NTP Service ended");
-    server.on("/", handleRoot );
     server.on("/index/", handleRoot );
     server.on("/setup/", handleSetup );
     server.on("/ntp/sync/",[]() { server.send (200, "application/json", "{\"sync\":\"true\"}"); 
                                   rrtime.getTime(); });
     server.on("/reboot", []() {
     server.send( 200, "application/json", "{\"rebooting\":\"true\"}" );
-    ESP.restart();
+    ESP.reset();
   });
-  server.on("/get/wifilist", []() {
+  server.on("/get/wifilist/", []() {
     server.send (200, "text/html",rrsettings.wifiList());
   });
   server.on("/graph_hour.svg", drawGraphHour);
@@ -174,27 +225,27 @@ void setup() {
   server.on("/day.csv", []() {
     server.send (200, "text/csv",PulsePerDay.toCsv());
   });
-  server.on("/get/day/stat", []() {
+  server.on("/get/day/stat/", []() {
    char tmp[60];
     snprintf ( tmp, 20,"{day_mean:%d,day_var:%d,day_stdDev:%d}",PulsePerDay.meanf(),PulsePerDay.variancef(),PulsePerDay.stdDevf());
     server.send (200, "text/plain",tmp);
   });
-  server.on("/get/count", []() {
+  server.on("/get/count/", []() {
     char tmp[25];
     snprintf ( tmp, 20,"{count:%d}",PulseCnt);
     server.send (200, "text/plain",tmp);
   });
-  server.on("/get/temperature", []() {
+  server.on("/get/temperature/", []() {
     char tmp[20];
     snprintf ( tmp, 20,"{TDOD:temperature:%f}",PulseCnt);
     server.send (200, "text/plain",tmp);
   });
-  server.on("/get/humidity", []() {
+  server.on("/get/humidity/", []() {
     char tmp[20];
     snprintf ( tmp, 20,"{TODO:humidity:%f}",PulseCnt);
     server.send (200, "text/plain",tmp);
   });
-  server.on("/get/switch", []() {
+  server.on("/get/switch/", []() {
     char tmp[20];
     snprintf ( tmp, 20,"{switch:%d}",relay.state());
     server.send (200, "text/plain",tmp);
@@ -213,11 +264,8 @@ void setup() {
   });
   //NOW DONE IN RRFS-Class server.onNotFound(handleNotFound);
   server.begin();
-/*
-RRMail mail;
-  if(mail.sendMail("r.raekow@gmail.com;roman.raekow@gmx.de;wurzelpost@gmail.com","Test","Leerer inhalt der <h2>HTML</h2>enthält")) DEBUGPRINT.println("Email sent");
-      else DEBUGPRINT.println("Email failed");
-*/
+  
+  
 
   ///////////////////////////////////////////////////
   /// BLYNK
@@ -244,9 +292,24 @@ RRMail mail;
        DEBUGPRINT.println(" ok");
     }else{
       DEBUGPRINT.println(" failed");    
-    }
-    
+    } 
   }
+
+   //////////////////////////////////
+   //DHT features
+   /////////////////////////////////
+   #if DHT_ACTIVE == 1
+     rrsettings.load("dht");
+     dhtBlynkSend = rrsettings.getBool("blynkEnabled"); 
+     dhtHttpSend  = rrsettings.getBool("httpEnabled");
+     strcpy(dhtHttpUrl,rrsettings.get("url").c_str());
+     blynkTempPin = rrsettings.getLong("blynkTemp");
+     blynkHumPin  = rrsettings.getLong("blynkHum");
+     blynkTempIndexPin  = rrsettings.getLong("blynkTempIdx");
+   #endif
+
+  
+  //digitalWrite(LED_PIN,LOW^LED_INVERTED);
 }
 
 
@@ -291,13 +354,12 @@ byte lastLogMin=-1;
 
 void loop() {
   
-  if(blynkEnabled && Blynk.connected()){
-    Blynk.run();
-  }
 
-  if(pinToggle){
-    pinToggle=false;
-    relay.setState(digitalRead(D2));
+
+  if(pinButtonToggle){
+    pinButtonToggle=false;
+    //relay.setState(digitalRead(BUTTON_PIN));
+    relay.toggle();
   }
   
   unsigned int currentMillis =0;
@@ -308,7 +370,6 @@ void loop() {
 
   if(lastLogMin != minute()){
     lastLogMin=minute();
-    relay.unset();
     unsigned int PulseCntBuff =PulseCnt;
     PulseCnt=0;
     PulsePerHour.setData(PulseCntBuff,minute());
@@ -317,12 +378,85 @@ void loop() {
       PulsePerDay.resetData(hour());
     }
     PulsePerDay.sumData(PulseCntBuff,hour());
+
+    if(pulseBlynkSend){
+      Serial.print("Writing Pulses to Pin");
+      Serial.println(blynkPulsePin);
+      Blynk.virtualWrite(blynkPulsePin, PulseCntBuff/(float)pulsesPerUnit);
+    }
+      
+
+    //send DHT data:
+    #if DHT_ACTIVE == 1
+      Serial.println("Checking DHT");
+      float h = dht.readHumidity();
+      // Read temperature as Celsius (the default)
+      float t = dht.readTemperature();
+      float hif;
+        // Check if any reads failed.
+      if (isnan(h) || isnan(t) ) {
+        Serial.println("Failed to read from DHT sensor!");
+        t=-100;
+        h=-100;
+        hif=-100;
+      }else{
+        hif = dht.computeHeatIndex(t, h,false);
+      }
+      Serial.print("DHT:T ");
+      Serial.print(t);
+      Serial.print(" H  ");
+      Serial.println(h);
+      if(dhtBlynkSend){
+        Blynk.virtualWrite(blynkTempPin, t);
+        Blynk.virtualWrite(blynkHumPin, h);
+        Blynk.virtualWrite(blynkTempIndexPin, hif);
+      }
+
+      if(dhtHttpSend){
+          String url(dhtHttpUrl);
+          if(url.length()>3){  //only if set
+            HTTPClient http;
+            url+="?temp="+String(t);
+            url+="&hum="+String(h);
+            url+="&tempIdx="+String(hif);
+            DEBUGPRINT.println(String("Sending http state: ")+url);
+            http.begin(String("http://")+url); //HTTP
+            int httpCode = http.GET();
+            
+            if(httpCode > 0) {
+                // HTTP header has been send and Server response header has been handled
+                DEBUGPRINT.printf("[HTTP] GET... code: %d\n", httpCode);
+    
+                // file found at server
+                if(httpCode == HTTP_CODE_OK) {
+                    String payload = http.getString();
+                    DEBUGPRINT.println(payload);
+                }
+            } else {
+                DEBUGPRINT.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+            }
+    
+            http.end();
+          }
+      }
+       
+    #endif
+
+    
   }
   server.handleClient();
   
-  //run the relay
+  //check if relay has been toggled
   if(relay.popToggled()){
+    Serial.print("Relay Toggled: Writing Blynk Value;relay.stat");
+    Serial.println(relay.state());
     Blynk.virtualWrite(blynkRelayPin, relay.state());
+     Blynk.syncVirtual(blynkRelayPin);
+  }
+
+
+  if(blynkEnabled && Blynk.connected()){
+    Blynk.run();
   }
 }
 

@@ -21,44 +21,65 @@
         <script src="js/script.js"></script> 
         <script src="js/ajaxq.js"></script> 
         <script>
-			function getByName(name){
-					console.log("By Name",$("[name='"+name+"']"));
-					return $("[name='"+name+"']");
-				}
-				
 				
 				$(function(){
 					$('[data-toggle="tooltip"]').tooltip();
+					//Change corresponding inputs
+					$('[data-enable]').change(function(){
+							$("[data-switchable="+$(this).data("enable")+"]").prop("disabled",!this.checked);
+						});	
 					
 					});
+					
+					function initSwitables(){
+							$('[data-enable]').each(function(){
+								$("[data-switchable="+$(this).data("enable")+"]").prop("disabled",!this.checked);
+							});
+					}
         </script> 
         
-         <script>
-								
+         <script>		
 							$(function(){
 								setTimeout(function(){
-										$.get("get/wifilist",function(data){
-											getByName("ssid").html(data);
+										$.get("get/wifilist/",function(data){
+											$("select[name=ssid]").html(data);
 										}).always(function(){
-											$.getJSON("/fs/list",function(data){
+											$.getJSON("fs/list/?dir=/config",function(data){
 													$(data).each(function(idx,el){
 															//get basename
 															var base=el['name'].substring(el['name'].lastIndexOf('/') +1).replace('.json','');
 															//base
-															$.getq("config",el['name'].replace('json','php'),function(data){
-																data=$.parseJSON(data);
+															//Add to que to read all the Data
+															$.getq("config",el['name'],function(data){
+																try{
+																	data=$.parseJSON(data);
+																}catch(err){
+																		;//do nothing
+																}
 																console.log(data);
-																var form = $('[data-rrsection="'+data['rrsection']+'"]');
+																var form = $('form[data-rrsection='+data['rrsection']+']');
 																$.each(data,function(key,value){
-																		console.log(key);
-																		form.find('[name="'+key+'"]').val(value);
+																		if(form.find('[name='+key+']').length <= 0){
+																			console.log("Element NOT found: ",key,value,form.find('[name='+key+']').length);
+																		}
+																		if(value === "true"){ //boolean value
+																			form.find('[name='+key+']').next().prop('checked',true);
+																		}else if(value === "false"){ //boolean value
+																			form.find('[name='+key+']').next().prop('checked',false);
+																		}else{
+																			//if it hast a value ste it else set the text
+																			var el=form.find('[name='+key+']');
+																			var attr=el.val();
+																			if(typeof attr !== typeof undefined && attr !== false){
+																				el.val(value);
+																			}else{
+																				el.text(value);
+																			}
+																		}
 																	});
-																
-																
-																
+																	
+																	initSwitables(); //Set hte enables/Disables tate accoruding to checkboxes
 																});
-															console.log(el,base);
-														
 														});
 												});//end device
 										
@@ -261,7 +282,7 @@
                                     <p>Setup the connection to your router</p>
 									<div class="form-group ">
 									<label>SSID / Name</label>
-                                            <select name ="ssid"  class="form-control" required data-validation-required-message="Please choose a Wifi.">
+									       <select name ="ssid"  class="form-control" required data-validation-required-message="Please choose a Wifi.">
 											<option disabled >loading...</option>
 											</select>
                                             <p class="help-block text-danger"></p>
@@ -318,14 +339,30 @@
 										<p>How many Ticks are a Unit</p>
 										  <div class="form-group ">
 											<label>Unit label</label>
-											  <input type="text" type="text" data-validation="text" class="form-control" placeholder="kw/h or m³" />
+											  <input name="unit" type="text" type="text" data-validation="text" class="form-control" placeholder="kw/h or m³" />
 											   <p class="help-block text-danger"></p>
 										   </div>
 										  <div class="form-group ">
 										  <label>Impulses per Unit</label>
-											<input type="text" type="number" step="1" min="1" data-validation="number" class="form-control" placeholder="e.g.1000" />
+											<input name="pulsesPerUnit" type="text" type="number" step="1" min="1" data-validation="number" class="form-control" placeholder="e.g.1000" />
 											<p class="help-block text-danger"></p>
 										  </div>
+										   <div class="form-group ">
+										 <label class="checkbox-inline">
+											 <input type="hidden" value="false" name="blynkEnabled">
+											 <input type="checkbox" value="true" name="blynkEnabled" data-enable="blynkPulse" >Enable Blynk
+										 </label>
+										</div>
+										<div class="form-group ">
+											  <label>Blynk Pin Pulsecount
+											  <a class="fa fa-info-circle" data-toggle="tooltip" title="Will transmit a float with pulses/pulsesPerUnit" ></a>
+											  </label>
+											  <div class="input-group">
+												<span class="input-group-addon">Virtual Pin: V</span>
+												<input data-switchable="blynkPulse" name="blynkTemp" type="text" data-validation="number" class="form-control"placeholder="1" />
+											  </div>
+											   <p class="help-block text-danger"></p>
+										</div>
 										  <button type="submit" class="btn-block btn btn-lg btn-primary">Save</button>
 									</div>
 								</div>
@@ -341,16 +378,19 @@
                                     <h4>NTP</h4>
                                     <p>Time synchronisation</p>
 									 <div class="form-group ">
-									 <label class="checkbox-inline">
-										 <input type="hidden" value="false" name="enabled">
-										 <input type="checkbox" value="true" name="enabled">Enable NTP
-									 </label>
+										  <label>Enable</label>
+										  <div class="input-group">
+									     <label class="checkbox-inline">
+											<input type="hidden" value="false" name="enabled">
+											<input type="checkbox" value="true" name="enabled" data-enable="ntp">Enable NTP
+										</label>
+									 </div>
 									 </div>
 									<div class="form-group ">
 										  <label>Interval</label>
 										  <div class="input-group">
 											<span class="input-group-addon">every</span>
-											<input name="interval" type="text" data-validation="number" class="form-control"placeholder="" />
+											<input data-switchable="ntp" name="interval" type="text" data-validation="number" class="form-control"placeholder="" />
 											<span class="input-group-addon">hours</span>
 										  </div>
 										   <p class="help-block text-danger"></p>
@@ -361,35 +401,7 @@
                             </form>
                            
                         </div><!-- /.col-md-4 -->
-                        <div class="col-md-4 col-sm-6 col-xs-12">
-							<form class="setupForm" data-rrsection="switch" >
-                            <div class="feature">
-                               <i class="fa fa-lightbulb-o blue"></i>
-                                <div class="feature-content">
-                                    <h4>Relay</h4>
-                                    <p>Setup how switch state schould be distributed. Empty=off.</p>
-									<div class="form-group ">
-										  <label>Url</label>
-										  <div class="input-group">
-											<span class="input-group-addon">http://</span>
-											<input name="url" type="text" data-validation="" class="form-control"placeholder="" />
-										  </div>
-										   <p class="help-block text-danger"></p>
-									</div>
-									<div class="form-group ">
-										  <label>Blynk Pin (Virtual)</label>
-										  <div class="input-group">
-											<span class="input-group-addon">V</span>
-											<input name="blynkPin" type="text" data-validation="number" class="form-control"placeholder="e.g. 1" />
-										  </div>
-										   <p class="help-block text-danger"></p>
-									</div>
-									  <button type="submit" class="btn-block btn btn-lg btn-primary">Save</button>
-                                </div>
-                            </div>
-                            </form>
-                           
-                        </div><!-- /.col-md-4 -->
+                       
 						</div><!-- /.row -->
                 </div>
                 
@@ -463,6 +475,118 @@
 													<span class="input-group-addon">Auth</span>
 													<input name="auth" type="text" data-validation="number" class="form-control"placeholder="" />
 												  </div>
+												   <p class="help-block text-danger"></p>
+											  </div>
+											  <button type="submit" class="btn-block btn btn-lg btn-success">Save</button>
+										</div>
+									</div>
+								</form>
+                        </div><!-- /.col-md-4 -->  <div class="col-md-4 col-sm-6 col-xs-12">
+							<form class="setupForm" data-rrsection="switch" >
+                            <div class="feature">
+                               <i class="fa fa-lightbulb-o green"></i>
+                                <div class="feature-content">
+                                    <h4>Relay</h4>
+                                    <p>Setup how switch state schould be distributed. Empty=off.</p>
+									<div class="form-group ">
+										  <label>Url</label>
+										  <div class="input-group">
+											<span class="input-group-addon">http://</span>
+											<input name="url" type="text" data-validation="" class="form-control"placeholder="" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									</div>
+									<div class="form-group ">
+										  <label>Blynk Pin</label>
+										  <div class="input-group">
+											<span class="input-group-addon">Virtual Pin: V</span>
+											<input name="blynkPin" type="text" data-validation="number" class="form-control"placeholder="e.g. 1" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									</div>
+									  <button type="submit" class="btn-block btn btn-lg btn-success">Save</button>
+                                </div>
+                            </div>
+                            </form>
+                           
+                        </div><!-- /.col-md-4 -->
+                         <div class="col-md-4 col-sm-6 col-xs-12">
+							<form class="setupForm" data-rrsection="dht" >
+                            <div class="feature">
+                               <i class="fa fa-thermometer-2 green"></i>
+                                <div class="feature-content">
+                                    <h4>Temperature and Humidity</h4>
+                                    <p>Send Data to URL or Blynk. (Leave empty if no Sensor is attached)</p>
+                                     <div class="form-group ">
+										 <label class="checkbox-inline">
+											 <input type="hidden" value="false" name="httpEnabled">
+											 <input type="checkbox" value="true" name="httpEnabled">Enable HTTP-Send
+										 </label>
+									</div>
+									<div class="form-group ">
+										  <label>Url</label>
+										  <p>Transmitted Values: temp, hum and tempIdx</p>
+										  <div class="input-group">
+											<span class="input-group-addon">http://</span>
+											<input name="url" type="text" data-validation="" class="form-control"placeholder="mypage.com/logger/" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									</div>
+									 <div class="form-group ">
+										 <label class="checkbox-inline">
+											 <input type="hidden" value="false" name="blynkEnabled">
+											 <input type="checkbox" value="true" name="blynkEnabled" data-enable="dht">Enable Blynk
+										 </label>
+									</div>
+									<div class="form-group ">
+										  <label>Blynk Pin Temperature</label>
+										  <div class="input-group">
+											<span class="input-group-addon">Virtual Pin: V</span>
+											<input data-switchable="dht" name="blynkTemp" type="text" data-validation="number" class="form-control"placeholder="1" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									</div>
+									<div class="form-group ">
+										  <label>Blynk Pin Humidity(Virtual)</label>
+										  <div class="input-group">
+											<span class="input-group-addon">Virtual Pin: V</span>
+											<input data-switchable="dht" name="blynkHum" type="text" data-validation="number" class="form-control"placeholder="2" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									</div>
+									<div class="form-group ">
+										  <label>Blynk Pin Heatindex</label>
+										  <div class="input-group">
+											<span class="input-group-addon">Virtual Pin: V</span>
+											<input data-switchable="dht" name="blynkTempIdx" type="text" data-validation="number" class="form-control"placeholder="3" />
+										  </div>
+										   <p class="help-block text-danger"></p>
+									</div>
+									  <button type="submit" class="btn-block btn btn-lg btn-success">Save</button>
+                                </div>
+                            </div>
+                            </form>
+                           
+                        </div><!-- /.col-md-4 -->
+                         <div class="col-md-4 col-sm-6 col-xs-12">
+								 <form class="setupForm" data-rrsection="mail">
+									<div class="feature">
+										<i class="fa green fa-envelope"></i>
+									
+										<div class="feature-content">
+											<h4>Startup-Mail</h4>
+											<p>Send Email on every startup</p>
+											 <div class="form-group ">
+											 <label class="checkbox-inline">
+												 <input type="hidden" value="false" name="enabled">
+												 <input type="checkbox" value="true" name="enabled" data-enable="mail" >Enable Startup-Mail
+											 </label>
+											 </div>
+											 <div class="form-group ">
+												  <label>Recipeints
+												  <a class="fa fa-info-circle" data-toggle="tooltip" title="Multiple Recipients can be separated by ';' " ></a>
+												  </label>
+													<input  data-switchable="mail" name="recipients" type="text" data-validation="number" class="form-control" placeholder="" />
 												   <p class="help-block text-danger"></p>
 											  </div>
 											  <button type="submit" class="btn-block btn btn-lg btn-success">Save</button>
